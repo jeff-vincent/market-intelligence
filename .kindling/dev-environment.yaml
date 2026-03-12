@@ -7,11 +7,14 @@ spec:
   deployment:
     image: mc-crawler:dev
     replicas: 1
-    port: 8080
+    port: 8086
+    env:
+      - name: PORT
+        value: "8086"
     healthCheck:
       path: /healthz
   service:
-    port: 8080
+    port: 8086
     type: ClusterIP
   dependencies:
     - type: mongodb
@@ -28,8 +31,10 @@ spec:
   deployment:
     image: mc-relevance-filter:dev
     replicas: 1
-    port: 8080
+    port: 8081
     env:
+      - name: PORT
+        value: "8081"
       - name: MONGO_URL
         value: "mongodb://mc-crawler-dev-mongodb:27017/mc"
       - name: REDIS_URL
@@ -39,7 +44,7 @@ spec:
     healthCheck:
       path: /healthz
   service:
-    port: 8080
+    port: 8081
     type: ClusterIP
 
 ---
@@ -69,8 +74,10 @@ spec:
   deployment:
     image: mc-entity-extractor:dev
     replicas: 1
-    port: 8080
+    port: 8088
     env:
+      - name: PORT
+        value: "8088"
       - name: MONGO_URL
         value: "mongodb://mc-crawler-dev-mongodb:27017/mc"
       - name: REDIS_URL
@@ -80,7 +87,7 @@ spec:
     healthCheck:
       path: /healthz
   service:
-    port: 8080
+    port: 8088
     type: ClusterIP
 
 ---
@@ -93,8 +100,10 @@ spec:
   deployment:
     image: mc-discovery-agent:dev
     replicas: 1
-    port: 8080
+    port: 8087
     env:
+      - name: PORT
+        value: "8087"
       - name: MONGO_URL
         value: "mongodb://mc-crawler-dev-mongodb:27017/mc"
       - name: REDIS_URL
@@ -104,7 +113,7 @@ spec:
     healthCheck:
       path: /healthz
   service:
-    port: 8080
+    port: 8087
     type: ClusterIP
 
 ---
@@ -189,6 +198,8 @@ spec:
     replicas: 1
     port: 3000
     env:
+      - name: PORT
+        value: "3000"
       - name: API_URL
         value: "http://mc-api-server-dev:8084"
     healthCheck:

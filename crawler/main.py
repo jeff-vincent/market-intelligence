@@ -192,6 +192,9 @@ async def crawl_loop():
             for source in sources:
                 interval = source.get("poll_interval_mins", POLL_DEFAULT_MINS)
                 last = source.get("last_crawled_at")
+                if last:
+                    if last.tzinfo is None:
+                        last = last.replace(tzinfo=timezone.utc)
                 if last and (now - last) < timedelta(minutes=interval):
                     continue
                 try:
@@ -241,9 +244,10 @@ async def run_server():
     app.router.add_get("/healthz", healthz)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 8080)
+    port = int(os.environ.get("PORT", "8080"))
+    site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    log.info("Health check server on :8080")
+    log.info("Health check server on :%d", port)
 
 
 async def main():
