@@ -1,0 +1,308 @@
+name: Dev Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: "registry:5000"
+  TAG: "${{ github.actor }}-${{ github.sha }}"
+
+jobs:
+  build-and-deploy:
+    runs-on: [self-hosted, "${{ github.actor }}"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Clean builds directory
+        shell: bash
+        run: |
+          rm -f /builds/*.done /builds/*.request /builds/*.processing \
+                /builds/*.apply /builds/*.apply-done /builds/*.apply-log \
+                /builds/*.apply-exitcode /builds/*.exitcode \
+                /builds/*.log /builds/*.dest /builds/*.tar.gz \
+                /builds/*.yaml /builds/*.sh
+
+      # -- Build all images --
+      - name: Build llm-gateway image
+        uses: kindling-sh/kindling/.github/actions/kindling-build@main
+        with:
+          name: llm-gateway
+          context: ${{ github.workspace }}/llm-gateway
+          image: "${{ env.REGISTRY }}/llm-gateway:${{ env.TAG }}"
+
+      - name: Build synthesis-agent image
+        uses: kindling-sh/kindling/.github/actions/kindling-build@main
+        with:
+          name: synthesis-agent
+          context: ${{ github.workspace }}/synthesis-agent
+          image: "${{ env.REGISTRY }}/synthesis-agent:${{ env.TAG }}"
+
+      - name: Build discovery-agent image
+        uses: kindling-sh/kindling/.github/actions/kindling-build@main
+        with:
+          name: discovery-agent
+          context: ${{ github.workspace }}/discovery-agent
+          image: "${{ env.REGISTRY }}/discovery-agent:${{ env.TAG }}"
+
+      - name: Build entity-extractor image
+        uses: kindling-sh/kindling/.github/actions/kindling-build@main
+        with:
+          name: entity-extractor
+          context: ${{ github.workspace }}/entity-extractor
+          image: "${{ env.REGISTRY }}/entity-extractor:${{ env.TAG }}"
+
+      - name: Build crawler image
+        uses: kindling-sh/kindling/.github/actions/kindling-build@main
+        with:
+          name: crawler
+          context: ${{ github.workspace }}/crawler
+          image: "${{ env.REGISTRY }}/crawler:${{ env.TAG }}"
+
+      - name: Build relevance-filter image
+        uses: kindling-sh/kindling/.github/actions/kindling-build@main
+        with:
+          name: relevance-filter
+          context: ${{ github.workspace }}/relevance-filter
+          image: "${{ env.REGISTRY }}/relevance-filter:${{ env.TAG }}"
+
+      - name: Build briefing-agent image
+        uses: kindling-sh/kindling/.github/actions/kindling-build@main
+        with:
+          name: briefing-agent
+          context: ${{ github.workspace }}/briefing-agent
+          image: "${{ env.REGISTRY }}/briefing-agent:${{ env.TAG }}"
+
+      - name: Build api-server image
+        uses: kindling-sh/kindling/.github/actions/kindling-build@main
+        with:
+          name: api-server
+          context: ${{ github.workspace }}/api-server
+          image: "${{ env.REGISTRY }}/api-server:${{ env.TAG }}"
+
+      - name: Build web-ui image
+        uses: kindling-sh/kindling/.github/actions/kindling-build@main
+        with:
+          name: web-ui
+          context: ${{ github.workspace }}/web-ui
+          image: "${{ env.REGISTRY }}/web-ui:${{ env.TAG }}"
+
+      # -- Deploy in dependency order --
+      - name: Deploy llm-gateway
+        uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
+        with:
+          name: "${{ github.actor }}-llm-gateway"
+          image: "${{ env.REGISTRY }}/llm-gateway:${{ env.TAG }}"
+          port: "8082"
+          ingress-host: "${{ github.actor }}-llm-gateway.localhost"
+          health-check-path: "/healthz"
+          health-check-type: "http"
+          labels: |
+            app.kubernetes.io/part-of: market-intelligence
+            app.kubernetes.io/component: llm-gateway
+            apps.example.com/github-username: ${{ github.actor }}
+          env: |
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kindling-secret-openai-api-key
+                  key: OPENAI_API_KEY
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kindling-secret-anthropic-api-key
+                  key: ANTHROPIC_API_KEY
+          dependencies: |
+          replicas: "1"
+          service-type: "ClusterIP"
+          ingress-class: "traefik"
+          wait: "true"
+
+      - name: Deploy synthesis-agent
+        uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
+        with:
+          name: "${{ github.actor }}-synthesis-agent"
+          image: "${{ env.REGISTRY }}/synthesis-agent:${{ env.TAG }}"
+          port: "8083"
+          ingress-host: "${{ github.actor }}-synthesis-agent.localhost"
+          health-check-path: "/healthz"
+          health-check-type: "http"
+          labels: |
+            app.kubernetes.io/part-of: market-intelligence
+            app.kubernetes.io/component: synthesis-agent
+            apps.example.com/github-username: ${{ github.actor }}
+          env: |
+            - name: LLM_GATEWAY_URL
+              value: "http://${{ github.actor }}-llm-gateway:8082"
+          dependencies: |
+            - type: mongodb
+            - type: redis
+          replicas: "1"
+          service-type: "ClusterIP"
+          ingress-class: "traefik"
+          wait: "true"
+
+      - name: Deploy discovery-agent
+        uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
+        with:
+          name: "${{ github.actor }}-discovery-agent"
+          image: "${{ env.REGISTRY }}/discovery-agent:${{ env.TAG }}"
+          port: "8087"
+          ingress-host: "${{ github.actor }}-discovery-agent.localhost"
+          health-check-path: "/healthz"
+          health-check-type: "http"
+          labels: |
+            app.kubernetes.io/part-of: market-intelligence
+            app.kubernetes.io/component: discovery-agent
+            apps.example.com/github-username: ${{ github.actor }}
+          env: |
+            - name: LLM_GATEWAY_URL
+              value: "http://${{ github.actor }}-llm-gateway:8082"
+          dependencies: |
+            - type: mongodb
+            - type: redis
+          replicas: "1"
+          service-type: "ClusterIP"
+          ingress-class: "traefik"
+          wait: "true"
+
+      - name: Deploy entity-extractor
+        uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
+        with:
+          name: "${{ github.actor }}-entity-extractor"
+          image: "${{ env.REGISTRY }}/entity-extractor:${{ env.TAG }}"
+          port: "8088"
+          ingress-host: "${{ github.actor }}-entity-extractor.localhost"
+          health-check-path: "/healthz"
+          health-check-type: "http"
+          labels: |
+            app.kubernetes.io/part-of: market-intelligence
+            app.kubernetes.io/component: entity-extractor
+            apps.example.com/github-username: ${{ github.actor }}
+          env: |
+            - name: LLM_GATEWAY_URL
+              value: "http://${{ github.actor }}-llm-gateway:8082"
+          dependencies: |
+            - type: mongodb
+            - type: redis
+          replicas: "1"
+          service-type: "ClusterIP"
+          ingress-class: "traefik"
+          wait: "true"
+
+      - name: Deploy crawler
+        uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
+        with:
+          name: "${{ github.actor }}-crawler"
+          image: "${{ env.REGISTRY }}/crawler:${{ env.TAG }}"
+          port: "8086"
+          ingress-host: "${{ github.actor }}-crawler.localhost"
+          health-check-path: "/healthz"
+          health-check-type: "none"
+          labels: |
+            app.kubernetes.io/part-of: market-intelligence
+            app.kubernetes.io/component: crawler
+            apps.example.com/github-username: ${{ github.actor }}
+          env: |
+          dependencies: |
+            - type: mongodb
+            - type: redis
+          replicas: "1"
+          service-type: "ClusterIP"
+          ingress-class: "traefik"
+          wait: "true"
+
+      - name: Deploy relevance-filter
+        uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
+        with:
+          name: "${{ github.actor }}-relevance-filter"
+          image: "${{ env.REGISTRY }}/relevance-filter:${{ env.TAG }}"
+          port: "8089"
+          ingress-host: "${{ github.actor }}-relevance-filter.localhost"
+          health-check-path: "/healthz"
+          health-check-type: "none"
+          labels: |
+            app.kubernetes.io/part-of: market-intelligence
+            app.kubernetes.io/component: relevance-filter
+            apps.example.com/github-username: ${{ github.actor }}
+          env: |
+          dependencies: |
+            - type: mongodb
+            - type: redis
+          replicas: "1"
+          service-type: "ClusterIP"
+          ingress-class: "traefik"
+          wait: "true"
+
+      - name: Deploy briefing-agent
+        uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
+        with:
+          name: "${{ github.actor }}-briefing-agent"
+          image: "${{ env.REGISTRY }}/briefing-agent:${{ env.TAG }}"
+          port: "8085"
+          ingress-host: "${{ github.actor }}-briefing-agent.localhost"
+          health-check-path: "/healthz"
+          health-check-type: "none"
+          labels: |
+            app.kubernetes.io/part-of: market-intelligence
+            app.kubernetes.io/component: briefing-agent
+            apps.example.com/github-username: ${{ github.actor }}
+          env: |
+          dependencies: |
+            - type: mongodb
+            - type: redis
+          replicas: "1"
+          service-type: "ClusterIP"
+          ingress-class: "traefik"
+          wait: "true"
+
+      - name: Deploy api-server
+        uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
+        with:
+          name: "${{ github.actor }}-api-server"
+          image: "${{ env.REGISTRY }}/api-server:${{ env.TAG }}"
+          port: "8084"
+          ingress-host: "${{ github.actor }}-api-server.localhost"
+          health-check-path: "/healthz"
+          health-check-type: "http"
+          labels: |
+            app.kubernetes.io/part-of: market-intelligence
+            app.kubernetes.io/component: api-server
+            apps.example.com/github-username: ${{ github.actor }}
+          env: |
+            - name: LLM_GATEWAY_URL
+              value: "http://${{ github.actor }}-llm-gateway:8082"
+            - name: SYNTHESIS_URL
+              value: "http://${{ github.actor }}-synthesis-agent:8083"
+          dependencies: |
+            - type: mongodb
+            - type: redis
+          replicas: "1"
+          service-type: "ClusterIP"
+          ingress-class: "traefik"
+          wait: "true"
+
+      - name: Deploy web-ui
+        uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
+        with:
+          name: "${{ github.actor }}-web-ui"
+          image: "${{ env.REGISTRY }}/web-ui:${{ env.TAG }}"
+          port: "80"
+          ingress-host: "${{ github.actor }}-web-ui.localhost"
+          health-check-path: "/"
+          health-check-type: "http"
+          labels: |
+            app.kubernetes.io/part-of: market-intelligence
+            app.kubernetes.io/component: web-ui
+            apps.example.com/github-username: ${{ github.actor }}
+          env: |
+            - name: API_URL
+              value: "http://${{ github.actor }}-api-server:8084"
+          dependencies: |
+          replicas: "1"
+          service-type: "ClusterIP"
+          ingress-class: "traefik"
+          wait: "true"
