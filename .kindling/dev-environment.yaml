@@ -1,0 +1,198 @@
+# Crawler — owns the shared dependencies
+apiVersion: apps.example.com/v1alpha1
+kind: DevStagingEnvironment
+metadata:
+  name: mc-crawler-dev
+spec:
+  deployment:
+    image: mc-crawler:dev
+    replicas: 1
+    port: 8080
+    healthCheck:
+      path: /healthz
+  service:
+    port: 8080
+    type: ClusterIP
+  dependencies:
+    - type: mongodb
+      version: "7"
+    - type: redis
+
+---
+# Relevance Filter
+apiVersion: apps.example.com/v1alpha1
+kind: DevStagingEnvironment
+metadata:
+  name: mc-relevance-filter-dev
+spec:
+  deployment:
+    image: mc-relevance-filter:dev
+    replicas: 1
+    port: 8080
+    env:
+      - name: MONGO_URL
+        value: "mongodb://mc-crawler-dev-mongodb:27017/mc"
+      - name: REDIS_URL
+        value: "redis://mc-crawler-dev-redis:6379/0"
+      - name: LLM_GATEWAY_URL
+        value: "http://mc-llm-gateway-dev:8082"
+    healthCheck:
+      path: /healthz
+  service:
+    port: 8080
+    type: ClusterIP
+
+---
+# LLM Gateway
+apiVersion: apps.example.com/v1alpha1
+kind: DevStagingEnvironment
+metadata:
+  name: mc-llm-gateway-dev
+spec:
+  deployment:
+    image: mc-llm-gateway:dev
+    replicas: 1
+    port: 8082
+    healthCheck:
+      path: /healthz
+  service:
+    port: 8082
+    type: ClusterIP
+
+---
+# Entity Extractor
+apiVersion: apps.example.com/v1alpha1
+kind: DevStagingEnvironment
+metadata:
+  name: mc-entity-extractor-dev
+spec:
+  deployment:
+    image: mc-entity-extractor:dev
+    replicas: 1
+    port: 8080
+    env:
+      - name: MONGO_URL
+        value: "mongodb://mc-crawler-dev-mongodb:27017/mc"
+      - name: REDIS_URL
+        value: "redis://mc-crawler-dev-redis:6379/0"
+      - name: LLM_GATEWAY_URL
+        value: "http://mc-llm-gateway-dev:8082"
+    healthCheck:
+      path: /healthz
+  service:
+    port: 8080
+    type: ClusterIP
+
+---
+# Discovery Agent
+apiVersion: apps.example.com/v1alpha1
+kind: DevStagingEnvironment
+metadata:
+  name: mc-discovery-agent-dev
+spec:
+  deployment:
+    image: mc-discovery-agent:dev
+    replicas: 1
+    port: 8080
+    env:
+      - name: MONGO_URL
+        value: "mongodb://mc-crawler-dev-mongodb:27017/mc"
+      - name: REDIS_URL
+        value: "redis://mc-crawler-dev-redis:6379/0"
+      - name: LLM_GATEWAY_URL
+        value: "http://mc-llm-gateway-dev:8082"
+    healthCheck:
+      path: /healthz
+  service:
+    port: 8080
+    type: ClusterIP
+
+---
+# Synthesis Agent
+apiVersion: apps.example.com/v1alpha1
+kind: DevStagingEnvironment
+metadata:
+  name: mc-synthesis-agent-dev
+spec:
+  deployment:
+    image: mc-synthesis-agent:dev
+    replicas: 1
+    port: 8083
+    env:
+      - name: MONGO_URL
+        value: "mongodb://mc-crawler-dev-mongodb:27017/mc"
+      - name: REDIS_URL
+        value: "redis://mc-crawler-dev-redis:6379/0"
+      - name: LLM_GATEWAY_URL
+        value: "http://mc-llm-gateway-dev:8082"
+    healthCheck:
+      path: /healthz
+  service:
+    port: 8083
+    type: ClusterIP
+
+---
+# Briefing Agent
+apiVersion: apps.example.com/v1alpha1
+kind: DevStagingEnvironment
+metadata:
+  name: mc-briefing-agent-dev
+spec:
+  deployment:
+    image: mc-briefing-agent:dev
+    replicas: 1
+    port: 8085
+    env:
+      - name: MONGO_URL
+        value: "mongodb://mc-crawler-dev-mongodb:27017/mc"
+      - name: REDIS_URL
+        value: "redis://mc-crawler-dev-redis:6379/0"
+    healthCheck:
+      path: /healthz
+  service:
+    port: 8085
+    type: ClusterIP
+
+---
+# API Server
+apiVersion: apps.example.com/v1alpha1
+kind: DevStagingEnvironment
+metadata:
+  name: mc-api-server-dev
+spec:
+  deployment:
+    image: mc-api-server:dev
+    replicas: 1
+    port: 8084
+    env:
+      - name: MONGO_URL
+        value: "mongodb://mc-crawler-dev-mongodb:27017/mc"
+      - name: REDIS_URL
+        value: "redis://mc-crawler-dev-redis:6379/0"
+      - name: LLM_GATEWAY_URL
+        value: "http://mc-llm-gateway-dev:8082"
+    healthCheck:
+      path: /healthz
+  service:
+    port: 8084
+    type: ClusterIP
+
+---
+# Web UI
+apiVersion: apps.example.com/v1alpha1
+kind: DevStagingEnvironment
+metadata:
+  name: mc-web-ui-dev
+spec:
+  deployment:
+    image: mc-web-ui:dev
+    replicas: 1
+    port: 3000
+    env:
+      - name: API_URL
+        value: "http://mc-api-server-dev:8084"
+    healthCheck:
+      path: /
+  service:
+    port: 3000
+    type: ClusterIP
