@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Market Consciousness</title>
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
   <style>
     :root {
       --bg: #0f1117;
@@ -86,11 +87,244 @@
     .badge-t3 { background: #22c55e20; color: var(--green); }
     .badge-pass { background: #22c55e20; color: var(--green); }
     .badge-weak { background: #eab30820; color: var(--yellow); }
+    .badge-drop { background: #ef444420; color: var(--red); }
     .health-good { color: var(--green); }
     .health-mid { color: var(--yellow); }
     .health-bad { color: var(--red); }
     .entity-type { color: var(--accent); font-size: 0.8rem; text-transform: uppercase; }
     .actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+
+    /* --- Pipeline stats bar --- */
+    .stats-bar {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.82rem;
+    }
+    .stat-chip .stat-num { font-weight: 600; color: var(--text); }
+    .stat-chip .stat-label { color: var(--muted); }
+
+    /* --- Pipeline filter bar --- */
+    .filter-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-btn {
+      padding: 0.35rem 0.75rem;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.82rem;
+      transition: all 0.15s;
+    }
+    .filter-btn:hover { border-color: var(--text); color: var(--text); }
+    .filter-btn.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+    .filter-count { font-weight: 600; margin-left: 0.2rem; }
+
+    /* --- Pipeline item card --- */
+    .pipeline-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      overflow: hidden;
+    }
+    .pipeline-card .card-header {
+      padding: 1rem 1.25rem 0.75rem;
+    }
+    .pipeline-card h3 { margin-bottom: 0.35rem; font-size: 0.95rem; }
+    .pipeline-card h3 a { color: var(--text); text-decoration: none; }
+    .pipeline-card h3 a:hover { color: var(--accent); }
+    .pipeline-card .excerpt { color: var(--muted); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .pipeline-card .score-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.8rem;
+    }
+    .score-meter {
+      width: 80px;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .score-meter .fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+    .score-val { color: var(--text); font-weight: 600; font-family: monospace; }
+
+    /* T4 analysis section */
+    .t4-section {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 0.75rem 1.25rem;
+    }
+    .t4-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+    .t4-summary {
+      font-size: 0.85rem;
+      color: var(--text);
+      line-height: 1.5;
+      margin-bottom: 0.5rem;
+    }
+    .entity-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .entity-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.15rem 0.5rem;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .entity-chip .chip-type {
+      color: var(--muted);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+    }
+
+    /* --- Entity card --- */
+    .entity-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+    .entity-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.4rem;
+    }
+    .entity-name { font-size: 1rem; font-weight: 600; }
+    .entity-meta {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+    .strength-indicator {
+      display: flex;
+      gap: 2px;
+    }
+    .strength-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .strength-dot.filled { background: var(--accent); }
+
+    /* --- Reddit reply panel --- */
+    .reply-panel {
+      border-top: 1px solid var(--border);
+      padding: 0.75rem 1.25rem;
+      background: var(--bg);
+    }
+    .reply-starters {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.6rem;
+    }
+    .starter-chip {
+      padding: 0.3rem 0.65rem;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--muted);
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: left;
+      line-height: 1.35;
+    }
+    .starter-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .reply-compose {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .reply-compose textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 0.6rem 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: inherit;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    .reply-compose textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .reply-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .reply-toolbar-left {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .autocomplete-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .autocomplete-toggle input[type="checkbox"] {
+      accent-color: var(--accent);
+    }
+    .reply-status {
+      font-size: 0.8rem;
+    }
+    .reddit-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      color: #ff4500;
+    }
+    .reddit-badge svg { width: 14px; height: 14px; }
     .btn {
       padding: 0.4rem 0.8rem;
       border-radius: 6px;
@@ -129,23 +363,768 @@
       font-size: 0.9rem;
     }
     #synth-result { margin-bottom: 1rem; }
+
+    /* --- Setup / Seed styles --- */
+    .setup-section { margin-bottom: 2rem; }
+    .setup-section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .setup-section .hint {
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-bottom: 0.75rem;
+      line-height: 1.5;
+    }
+    .setup-section textarea,
+    .setup-section input[type="text"],
+    .setup-section input[type="url"] {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+    .setup-section textarea:focus,
+    .setup-section input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .setup-section textarea { min-height: 80px; }
+
+    /* Tag selector */
+    .tag-input-wrap {
+      position: relative;
+    }
+    .tag-input-wrap input {
+      width: 100%;
+    }
+    .tag-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+    .tag-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.55rem;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .tag-pill button {
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 0.9rem;
+      line-height: 1;
+      padding: 0;
+      opacity: 0.6;
+    }
+    .tag-pill button:hover { opacity: 1; }
+    .tag-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-top: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+    }
+    .tag-suggestions.open { display: block; }
+    .tag-suggestion {
+      padding: 0.45rem 0.75rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.1s;
+    }
+    .tag-suggestion:hover,
+    .tag-suggestion.highlighted {
+      background: var(--accent-soft);
+    }
+    .tag-suggestion .tag-cat {
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-left: 0.4rem;
+    }
+
+    /* Example content cards */
+    .example-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .example-card .example-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .example-card input,
+    .example-card textarea {
+      width: 100%;
+      padding: 0.5rem 0.65rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: inherit;
+      margin-bottom: 0.4rem;
+    }
+    .example-card textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+    .example-card input:focus,
+    .example-card textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .setup-submit {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 1.5rem;
+    }
+    .setup-submit .status-msg {
+      font-size: 0.85rem;
+    }
+    .seeded-banner {
+      background: #22c55e15;
+      border: 1px solid #22c55e40;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--green);
+    }
+    .seeded-banner button {
+      background: none;
+      border: 1px solid #22c55e40;
+      color: var(--green);
+      padding: 0.3rem 0.6rem;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .seeded-banner button:hover { background: #22c55e15; }
+    .seeded-banner .banner-actions { display: flex; gap: 0.5rem; }
+    .version-history {
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .version-toggle {
+      width: 100%;
+      background: var(--card);
+      border: none;
+      color: var(--muted);
+      padding: 0.6rem 1rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .version-toggle:hover { color: var(--fg); }
+    .version-list {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .version-list.open { max-height: 400px; overflow-y: auto; }
+    .version-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+    .version-item:hover { background: var(--card); }
+    .version-item .v-info { flex: 1; }
+    .version-item .v-label { color: var(--fg); font-weight: 500; }
+    .version-item .v-problem { color: var(--muted); margin-top: 2px; }
+    .version-item .v-date { color: var(--muted); font-size: 0.75rem; }
+    .version-item .v-reverted { color: var(--yellow); font-size: 0.75rem; margin-left: 0.5rem; }
+    .version-item button {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+    .version-item button:hover { color: var(--fg); border-color: var(--fg); }
+    .version-item.current { background: #22c55e08; }
+    .version-item.current .v-label { color: var(--green); }
+
+    /* Auth / Login — Homepage */
+    #login-screen {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: var(--bg);
+    }
+
+    /* Hero */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 6rem 2rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.85rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .hero h1 {
+      font-size: 2.75rem;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      position: relative;
+      max-width: 700px;
+    }
+    .hero h1 .accent { color: var(--accent); }
+    .hero .subtitle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 520px;
+      line-height: 1.6;
+      margin-bottom: 2.5rem;
+      position: relative;
+    }
+    .hero-cta {
+      display: flex;
+      gap: 0.75rem;
+      position: relative;
+    }
+    .btn-hero {
+      padding: 0.85rem 2rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-hero-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    }
+    .btn-hero-primary:hover {
+      background: #5558e6;
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+      transform: translateY(-1px);
+    }
+    .btn-hero-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-hero-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Auth section */
+    .auth-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 2rem 3rem;
+    }
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem 2.5rem;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+    .auth-card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.5rem;
+    }
+    .auth-card .auth-sub {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 1.5rem;
+    }
+    .oauth-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 0.6rem;
+    }
+    .oauth-btn:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .oauth-btn svg {
+      width: 20px; height: 20px;
+      flex-shrink: 0;
+    }
+    .oauth-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1rem 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .oauth-divider::before,
+    .oauth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .auth-card .auth0-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .auth-card .auth0-badge svg { width: 16px; height: 16px; }
+
+    /* Features grid */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 2rem 4rem;
+    }
+    @media (max-width: 700px) { .features { grid-template-columns: 1fr; } }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+    .feature-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: var(--accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+    }
+    .feature-card h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+    .feature-card p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* Pipeline viz */
+    .pipeline-viz {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      padding: 2rem 2rem 3.5rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .pv-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      flex: 1;
+    }
+    .pv-dot {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .pv-dot-raw { background: #3b82f620; color: #3b82f6; }
+    .pv-dot-score { background: #22c55e20; color: #22c55e; }
+    .pv-dot-analyze { background: var(--accent-soft); color: var(--accent); }
+    .pv-dot-brief { background: #f59e0b20; color: #f59e0b; }
+    .pv-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .pv-arrow {
+      width: 40px;
+      height: 2px;
+      background: var(--border);
+      position: relative;
+      margin-top: -1rem;
+    }
+    .pv-arrow::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: -3px;
+      width: 8px; height: 8px;
+      border-right: 2px solid var(--border);
+      border-top: 2px solid var(--border);
+      transform: rotate(45deg);
+    }
+
+    /* Footer */
+    .homepage-footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+      border-top: 1px solid var(--border);
+      margin-top: auto;
+    }
+    #app-shell { display: none; }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .user-info img {
+      width: 28px; height: 28px; border-radius: 50%;
+    }
+    .user-info span { color: var(--muted); font-size: 0.85rem; }
+    .user-info button {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 0.3rem 0.6rem;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .user-info button:hover { color: var(--text); border-color: var(--text); }
+
+    /* API Keys settings */
+    .key-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .key-row:last-child { border-bottom: none; }
+    .key-provider { font-weight: 600; min-width: 120px; }
+    .key-masked { color: var(--muted); font-family: monospace; font-size: 0.85rem; flex: 1; }
+    .key-status-ok { color: var(--green); font-size: 0.8rem; }
+    .key-status-none { color: var(--muted); font-size: 0.8rem; }
+    .key-input-wrap {
+      display: flex;
+      gap: 0.5rem;
+      flex: 1;
+    }
+    .key-input-wrap input {
+      flex: 1;
+      padding: 0.5rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text);
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+    .key-input-wrap input:focus { outline: none; border-color: var(--accent); }
+    .key-actions { display: flex; gap: 0.4rem; }
+    .key-actions button {
+      padding: 0.35rem 0.6rem;
+      border-radius: 5px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--text);
+    }
+    .key-actions button:hover { border-color: var(--accent); }
+    .key-actions .btn-danger { color: var(--red); border-color: var(--red); }
+    .key-actions .btn-danger:hover { background: #ef444415; }
+    .key-warning {
+      background: #eab30810;
+      border: 1px solid #eab30840;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      color: var(--yellow);
+      font-size: 0.85rem;
+    }
   </style>
 </head>
 <body>
 
+<!-- Homepage / Login Screen -->
+<div id="login-screen">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge"><span class="dot"></span> Continuous intelligence pipeline</div>
+    <h1>Market signals,<br><span class="accent">distilled to what matters</span></h1>
+    <p class="subtitle">An always-on intelligence pipeline that crawls, scores, analyzes, and synthesizes market signals — so you see the patterns before everyone else.</p>
+    <div class="hero-cta">
+      <button class="btn-hero btn-hero-primary" onclick="scrollToAuth()">Get started</button>
+      <button class="btn-hero btn-hero-secondary" onclick="scrollToFeatures()">How it works</button>
+    </div>
+  </div>
+
+  <!-- Pipeline visualization -->
+  <div class="pipeline-viz" id="pipeline-viz">
+    <div class="pv-step">
+      <div class="pv-dot pv-dot-raw">1</div>
+      <div class="pv-label">Crawl<br>sources</div>
+    </div>
+    <div class="pv-arrow"></div>
+    <div class="pv-step">
+      <div class="pv-dot pv-dot-score">2</div>
+      <div class="pv-label">Score<br>relevance</div>
+    </div>
+    <div class="pv-arrow"></div>
+    <div class="pv-step">
+      <div class="pv-dot pv-dot-analyze">3</div>
+      <div class="pv-label">Deep<br>analysis</div>
+    </div>
+    <div class="pv-arrow"></div>
+    <div class="pv-step">
+      <div class="pv-dot pv-dot-brief">4</div>
+      <div class="pv-label">Daily<br>briefing</div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="features" id="features">
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <h4>Source Discovery</h4>
+      <p>AI discovers and proposes relevant sources across Reddit, HN, blogs, and niche communities — you approve what looks right.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h4>Relevance Scoring</h4>
+      <p>Embedding-based cosine scoring against your problem space. Each signal gets a PASS, WEAK, or DROP band so you see what matters.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <h4>Entity Extraction</h4>
+      <p>Deep T4 analysis extracts companies, tools, and concepts — building a knowledge graph of your competitive landscape over time.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <h4>Daily Briefings</h4>
+      <p>Synthesized briefings group related signals, highlight entity changes, and push to Slack, Discord, email, or webhooks.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔧</div>
+      <h4>Pipeline QA</h4>
+      <p>See every stage of the pipeline — raw signals, scores, analysis, entities — side by side. Tune and validate in real time.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔐</div>
+      <h4>Secure by Default</h4>
+      <p>Auth0 OAuth with social login. API keys encrypted at rest with AES-256. Your data stays yours.</p>
+    </div>
+  </div>
+
+  <!-- Auth Card -->
+  <div class="auth-section" id="auth-section">
+    <div class="auth-card">
+      <h3>Sign in to continue</h3>
+      <p class="auth-sub">Secure authentication powered by Auth0</p>
+
+      <button class="oauth-btn" onclick="doLogin()">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A11.96 11.96 0 001 12c0 1.94.46 3.77 1.18 5.41l3.66-2.84v-.48z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+
+      <button class="oauth-btn" onclick="doLogin()">
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        Continue with GitHub
+      </button>
+
+      <div class="oauth-divider">or</div>
+
+      <button class="oauth-btn" onclick="doLogin()">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="var(--accent)"/><path d="M7 8h10M7 12h10M7 16h6" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Continue with email
+      </button>
+
+      <div class="auth0-badge">
+        <svg viewBox="0 0 24 24" fill="var(--muted)" xmlns="http://www.w3.org/2000/svg"><path d="M17.75 2.01L12 2 6.25 2.01C4.46 2.01 3 3.48 3 5.27v.09l2.11 6.5c.36 1.1 1.39 1.84 2.54 1.84h.02l-.78 2.42c-.14.42.06.88.47 1.06l4.64 2.21 4.64-2.21c.4-.18.6-.64.47-1.06l-.78-2.42h.02c1.15 0 2.18-.74 2.54-1.84L21 5.36v-.09c0-1.79-1.46-3.26-3.25-3.26z"/></svg>
+        Secured by Auth0
+      </div>
+    </div>
+  </div>
+
+  <div class="homepage-footer">
+    Market Consciousness &mdash; Intelligence that compound over time
+  </div>
+</div>
+
+<!-- App Shell (hidden until authenticated) -->
+<div id="app-shell">
+
 <header>
   <h1>Market Consciousness</h1>
-  <div id="stats">loading...</div>
+  <div style="display:flex;align-items:center;gap:1.5rem;">
+    <div id="stats">loading...</div>
+    <div class="user-info" id="user-info"></div>
+  </div>
 </header>
 
 <nav>
+  <button data-view="setup">Setup</button>
   <button class="active" data-view="briefings">Briefings</button>
-  <button data-view="items">Items</button>
+  <button data-view="pipeline">Pipeline</button>
   <button data-view="entities">Entities</button>
   <button data-view="sources">Sources</button>
+  <button data-view="settings">Settings</button>
+  <button data-view="integrations">Integrations</button>
 </nav>
 
 <main>
+  <!-- Setup / Seed View -->
+  <div id="setup" class="view">
+    <div id="seeded-banner-wrap"></div>
+    <div id="version-history-wrap"></div>
+
+    <div class="setup-section">
+      <h2>Context tags</h2>
+      <p class="hint">What space are you watching? Pick tags that frame the territory — the system uses these to orient its source discovery and relevance scoring.</p>
+      <div class="tag-pills" id="tag-pills"></div>
+      <div class="tag-input-wrap">
+        <input type="text" id="tag-input" placeholder="Type to search — e.g. devtools, fintech, ai..." autocomplete="off">
+        <div class="tag-suggestions" id="tag-suggestions"></div>
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <h2>Problem space</h2>
+      <p class="hint">One or two sentences. Describe the problem your users have, not the product you're building. The system discovers better signals when pointed at the pain, not the solution.</p>
+      <textarea id="seed-problem" placeholder="e.g. The friction between writing code locally and running it in production, especially for multi-service architectures."></textarea>
+    </div>
+
+    <div class="setup-section">
+      <h2>Target user</h2>
+      <p class="hint">Who has this problem? What's their primary frustration?</p>
+      <textarea id="seed-user" placeholder="e.g. Solo developers and small teams building containerised apps who lose hours to CI/CD configuration before a line of feature code ships."></textarea>
+    </div>
+
+    <div class="setup-section">
+      <h2>Example signals</h2>
+      <p class="hint">Paste up to 3 pieces of content you recently found highly relevant. Could be URLs, article snippets, tweet threads — anything that made you think "this is the kind of thing I want to see more of." This teaches the system your taste.</p>
+
+      <div class="example-card">
+        <div class="example-label">Example 1</div>
+        <input type="text" id="ex-title-0" placeholder="Title or one-liner (optional)">
+        <input type="url" id="ex-url-0" placeholder="URL (optional)">
+        <textarea id="ex-text-0" placeholder="Paste a snippet, quote, or describe why this was relevant..."></textarea>
+      </div>
+      <div class="example-card">
+        <div class="example-label">Example 2</div>
+        <input type="text" id="ex-title-1" placeholder="Title or one-liner (optional)">
+        <input type="url" id="ex-url-1" placeholder="URL (optional)">
+        <textarea id="ex-text-1" placeholder="Paste a snippet, quote, or describe why this was relevant..."></textarea>
+      </div>
+      <div class="example-card">
+        <div class="example-label">Example 3</div>
+        <input type="text" id="ex-title-2" placeholder="Title or one-liner (optional)">
+        <input type="url" id="ex-url-2" placeholder="URL (optional)">
+        <textarea id="ex-text-2" placeholder="Paste a snippet, quote, or describe why this was relevant..."></textarea>
+      </div>
+    </div>
+
+    <div class="setup-submit">
+      <button class="btn btn-primary" id="seed-submit" onclick="saveSeed()">Save seed</button>
+      <span class="status-msg" id="seed-status"></span>
+    </div>
+  </div>
+
   <!-- Briefings View -->
   <div id="briefings" class="view active">
     <div id="synthesise-box">
@@ -156,13 +1135,15 @@
     <div id="briefings-list"></div>
   </div>
 
-  <!-- Items View -->
-  <div id="items" class="view">
-    <div id="items-list"></div>
+  <!-- Pipeline View -->
+  <div id="pipeline" class="view">
+    <div class="filter-bar" id="pipeline-filters"></div>
+    <div id="pipeline-list"></div>
   </div>
 
   <!-- Entities View -->
   <div id="entities" class="view">
+    <div id="entities-summary" style="margin-bottom:1rem;"></div>
     <div id="entities-list"></div>
   </div>
 
@@ -171,10 +1152,173 @@
     <div id="proposals-section"></div>
     <div id="sources-list"></div>
   </div>
+
+  <!-- Settings View (API Keys) -->
+  <div id="settings" class="view">
+    <div class="card">
+      <h3>API Keys</h3>
+      <p style="color:var(--muted);margin-bottom:1rem;">Your keys are encrypted at rest using AES-256 and never leave the server after storage. They're decrypted only at the moment an LLM call is made.</p>
+      <div class="key-warning">Keys are transmitted over HTTPS and encrypted server-side. Never share your API keys.</div>
+      <div id="keys-list">loading...</div>
+    </div>
+    <div class="card" style="margin-top:1rem;">
+      <h3>Add or update a key</h3>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.75rem;">
+        <select id="key-provider-select" style="padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:0.9rem;">
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+        </select>
+        <input type="password" id="key-value-input" placeholder="sk-..." style="padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:monospace;font-size:0.85rem;">
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <button class="btn btn-primary" onclick="saveApiKey()">Encrypt & Save</button>
+          <span id="key-status" style="font-size:0.85rem;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:1rem;">
+      <h3 style="display:flex;align-items:center;gap:0.5rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#ff4500"><circle cx="12" cy="12" r="12"/><path d="M18.6 12a2.1 2.1 0 00-3.5-1.6 10.3 10.3 0 00-5.3-1.6l.9-4.3 3 .6a1.5 1.5 0 101.4-1 .3.3 0 000-.1 1.5 1.5 0 00-1.6-1.4c-.6 0-1.1.3-1.3.8l-3.3-.7a.4.4 0 00-.5.3l-1 4.8a10.3 10.3 0 00-5.4 1.6 2.1 2.1 0 10-2.3 3.4v.5c0 2.9 3.3 5.2 7.4 5.2s7.4-2.3 7.4-5.2v-.5a2.1 2.1 0 001.1-1.8zM8 13.5a1.5 1.5 0 111.5 1.5A1.5 1.5 0 018 13.5zm8.3 3.6a4.8 4.8 0 01-4.3 1.2 4.8 4.8 0 01-4.3-1.2.3.3 0 01.4-.4 4.2 4.2 0 003.9 1 4.2 4.2 0 003.9-1 .3.3 0 01.4.4zm-.3-2.1a1.5 1.5 0 111.5-1.5 1.5 1.5 0 01-1.5 1.5z" fill="#fff"/></svg> Reddit Engagement</h3>
+      <p style="color:var(--muted);margin-bottom:0.75rem;">Connect a Reddit account to reply to posts directly from the dashboard. Uses Reddit's OAuth API.</p>
+      <div id="reddit-creds-status"></div>
+      <div style="display:flex;flex-direction:column;gap:0.6rem;margin-top:0.75rem;">
+        <label style="font-size:0.82rem;color:var(--muted);">Client ID</label>
+        <input type="text" id="reddit-client-id" placeholder="your_app_client_id" style="padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:monospace;font-size:0.85rem;">
+        <label style="font-size:0.82rem;color:var(--muted);">Client Secret</label>
+        <input type="password" id="reddit-client-secret" placeholder="your_app_secret" style="padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:monospace;font-size:0.85rem;">
+        <label style="font-size:0.82rem;color:var(--muted);">Refresh Token</label>
+        <input type="password" id="reddit-refresh-token" placeholder="refresh_token from OAuth flow" style="padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:monospace;font-size:0.85rem;">
+        <label style="font-size:0.82rem;color:var(--muted);">Username</label>
+        <input type="text" id="reddit-username" placeholder="u/your_username" style="padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:monospace;font-size:0.85rem;">
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <button class="btn btn-primary" onclick="saveRedditCreds()">Encrypt & Save</button>
+          <button class="btn btn-danger" onclick="deleteRedditCreds()" id="reddit-delete-btn" style="display:none;">Remove</button>
+          <span id="reddit-status" style="font-size:0.85rem;"></span>
+        </div>
+        <p style="font-size:0.75rem;color:var(--muted);margin-top:0.25rem;">Need a token? <a href="https://www.reddit.com/prefs/apps" target="_blank" style="color:var(--accent);">Create a Reddit app</a>, then use the OAuth2 flow to get a refresh token with <code>submit</code> scope.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Integrations View -->
+  <div id="integrations" class="view">
+    <div class="card">
+      <h3>Integrations</h3>
+      <p style="color:var(--muted);margin-bottom:1rem;">Connect Market Consciousness to your favorite tools. Briefings, alerts, and entity changes get pushed automatically.</p>
+      <div id="integrations-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;">loading...</div>
+    </div>
+    <div class="card" style="margin-top:1rem;">
+      <h3>Data Export</h3>
+      <p style="color:var(--muted);margin-bottom:0.75rem;">Download your data or subscribe to the RSS feed.</p>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+        <a class="btn btn-primary" href="/api/feed/rss" target="_blank" style="text-decoration:none;">RSS Feed</a>
+        <a class="btn" href="/api/export/items" target="_blank" style="text-decoration:none;background:var(--border);color:var(--text);">Export Items CSV</a>
+        <a class="btn" href="/api/export/entities" target="_blank" style="text-decoration:none;background:var(--border);color:var(--text);">Export Entities CSV</a>
+        <a class="btn" href="/api/export/sources" target="_blank" style="text-decoration:none;background:var(--border);color:var(--text);">Export Sources CSV</a>
+      </div>
+    </div>
+  </div>
 </main>
+
+</div><!-- /app-shell -->
 
 <script>
 const api = "/api";
+let auth0 = null;
+let accessToken = null;
+
+// --- Authenticated fetch wrapper ---
+async function authFetch(url, opts = {}) {
+  if (!opts.headers) opts.headers = {};
+  if (accessToken) {
+    opts.headers["Authorization"] = `Bearer ${accessToken}`;
+  }
+  if (!opts.headers["Content-Type"] && opts.body) {
+    opts.headers["Content-Type"] = "application/json";
+  }
+  return fetch(url, opts);
+}
+
+// --- Auth0 Init ---
+async function initAuth() {
+  try {
+    const cfgRes = await fetch("/auth/config");
+    const cfg = await cfgRes.json();
+    if (!cfg.domain || !cfg.clientId) {
+      // Auth0 not configured — show app without auth (dev mode)
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app-shell").style.display = "block";
+      bootApp();
+      return;
+    }
+    auth0 = await window.auth0.createAuth0Client({
+      domain: cfg.domain,
+      clientId: cfg.clientId,
+      authorizationParams: {
+        redirect_uri: window.location.origin,
+        audience: cfg.audience || undefined,
+      },
+      cacheLocation: "localstorage",
+    });
+
+    // Handle redirect callback
+    if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
+      await auth0.handleRedirectCallback();
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    if (await auth0.isAuthenticated()) {
+      accessToken = await auth0.getTokenSilently();
+      const user = await auth0.getUser();
+      showApp(user);
+    } else {
+      document.getElementById("login-screen").style.display = "flex";
+      document.getElementById("app-shell").style.display = "none";
+    }
+  } catch (e) {
+    console.error("Auth init error:", e);
+    // Fallback to unauthenticated mode
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app-shell").style.display = "block";
+    bootApp();
+  }
+}
+
+async function doLogin() {
+  if (auth0) await auth0.loginWithRedirect();
+}
+
+async function doLogout() {
+  if (auth0) await auth0.logout({ logoutParams: { returnTo: window.location.origin } });
+}
+
+function scrollToAuth() {
+  document.getElementById("auth-section").scrollIntoView({ behavior: "smooth" });
+}
+
+function scrollToFeatures() {
+  document.getElementById("features").scrollIntoView({ behavior: "smooth" });
+}
+
+function showApp(user) {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app-shell").style.display = "block";
+  const info = document.getElementById("user-info");
+  if (user) {
+    info.innerHTML = `
+      ${user.picture ? `<img src="${esc(user.picture)}" alt="">` : ""}
+      <span>${esc(user.name || user.email || "")}</span>
+      <button onclick="doLogout()">Sign out</button>
+    `;
+  }
+  bootApp();
+}
+
+function bootApp() {
+  loadStats();
+  loadBriefings();
+  checkSeedOnLoad();
+  setInterval(loadStats, 30000);
+}
 
 // --- Navigation ---
 document.querySelectorAll("nav button").forEach(btn => {
@@ -188,17 +1332,27 @@ document.querySelectorAll("nav button").forEach(btn => {
 });
 
 function loadView(name) {
-  const loaders = { briefings: loadBriefings, items: loadItems, entities: loadEntities, sources: loadSources };
+  const loaders = { briefings: loadBriefings, pipeline: loadPipeline, entities: loadEntities, sources: loadSources, setup: loadSetup, settings: loadKeys, integrations: loadIntegrations };
   if (loaders[name]) loaders[name]();
 }
 
 // --- Stats ---
+let lastStats = {};
 async function loadStats() {
   try {
-    const res = await fetch(`${api}/stats`);
+    const res = await authFetch(`${api}/stats`);
     const d = await res.json();
-    document.getElementById("stats").textContent =
-      `${d.items} items · ${d.entities} entities · ${d.active_sources} sources · ${d.briefings} briefings`;
+    lastStats = d;
+    const el = document.getElementById("stats");
+    el.innerHTML = `<div class="stats-bar">
+      <div class="stat-chip"><span class="stat-num">${d.items}</span><span class="stat-label">signals</span></div>
+      <div class="stat-chip"><span class="stat-num" style="color:var(--green)">${d.pass || 0}</span><span class="stat-label">pass</span></div>
+      <div class="stat-chip"><span class="stat-num" style="color:var(--yellow)">${d.weak || 0}</span><span class="stat-label">weak</span></div>
+      <div class="stat-chip"><span class="stat-num" style="color:var(--red)">${d.drop || 0}</span><span class="stat-label">drop</span></div>
+      <div class="stat-chip"><span class="stat-num">${d.t4_analyzed || 0}</span><span class="stat-label">analyzed</span></div>
+      <div class="stat-chip"><span class="stat-num">${d.entities}</span><span class="stat-label">entities</span></div>
+      <div class="stat-chip"><span class="stat-num">${d.briefings}</span><span class="stat-label">briefings</span></div>
+    </div>`;
   } catch { document.getElementById("stats").textContent = "api offline"; }
 }
 
@@ -206,66 +1360,168 @@ async function loadStats() {
 async function loadBriefings() {
   const el = document.getElementById("briefings-list");
   try {
-    const res = await fetch(`${api}/briefings?limit=10`);
+    const res = await authFetch(`${api}/briefings?limit=10`);
     const docs = await res.json();
-    if (!docs.length) { el.innerHTML = '<div class="empty">No briefings yet. The system generates them daily.</div>'; return; }
-    el.innerHTML = docs.map(b => `
+    if (!docs.length) { el.innerHTML = '<div class="empty">No briefings yet. The system generates them daily, or trigger one manually above.</div>'; return; }
+    el.innerHTML = docs.map(b => {
+      const linkedCount = (b.linked_items || []).length;
+      const entityChanges = b.formatted?.entity_changes || b.entity_changes || 0;
+      return `
       <div class="card">
         <h3>${esc(b.formatted?.title || "Briefing")}</h3>
         <div class="briefing-body">${esc(b.formatted?.body || b.synthesis || JSON.stringify(b, null, 2))}</div>
-        <div class="meta">
+        <div class="meta" style="margin-top:0.75rem;">
           <span>${timeAgo(b.created_at)}</span>
-          <span>${(b.linked_items || []).length} linked items</span>
+          <span>${linkedCount} source item${linkedCount !== 1 ? 's' : ''}</span>
+          ${entityChanges ? `<span>${entityChanges} entity changes</span>` : ''}
         </div>
-      </div>`).join("");
+      </div>`;
+    }).join("");
   } catch { el.innerHTML = '<div class="empty">Failed to load briefings</div>'; }
 }
 
-// --- Items ---
-async function loadItems() {
-  const el = document.getElementById("items-list");
+// --- Pipeline ---
+let pipelineFilter = "all";
+
+function renderPipelineFilters() {
+  const el = document.getElementById("pipeline-filters");
+  const counts = { all: lastStats.items || 0, PASS: lastStats.pass || 0, WEAK: lastStats.weak || 0, DROP: lastStats.drop || 0, analyzed: lastStats.t4_analyzed || 0 };
+  el.innerHTML = [
+    { key: "all", label: "All signals" },
+    { key: "PASS", label: "Pass" },
+    { key: "WEAK", label: "Weak" },
+    { key: "DROP", label: "Drop" },
+    { key: "analyzed", label: "T4 Analyzed" },
+  ].map(f => `<button class="filter-btn ${pipelineFilter === f.key ? 'active' : ''}" onclick="setPipelineFilter('${f.key}')">${f.label}<span class="filter-count">${counts[f.key] || 0}</span></button>`).join("");
+}
+
+function setPipelineFilter(f) {
+  pipelineFilter = f;
+  loadPipeline();
+}
+
+async function loadPipeline() {
+  renderPipelineFilters();
+  const el = document.getElementById("pipeline-list");
   try {
-    const res = await fetch(`${api}/items?limit=50`);
+    let url = `${api}/items?limit=60`;
+    if (pipelineFilter === "PASS" || pipelineFilter === "WEAK" || pipelineFilter === "DROP") {
+      url += `&band=${pipelineFilter}`;
+    } else if (pipelineFilter === "analyzed") {
+      url += `&analyzed=true`;
+    }
+    const res = await authFetch(url);
     const docs = await res.json();
-    if (!docs.length) { el.innerHTML = '<div class="empty">No items yet. Start the crawler to begin ingesting.</div>'; return; }
-    el.innerHTML = docs.map(item => `
-      <div class="card">
-        <h3>${esc(item.title || item.url)}</h3>
-        <p>${esc((item.summary || item.content || "").slice(0, 300))}</p>
-        <div class="meta">
-          ${item.tier ? `<span class="badge badge-${item.tier.toLowerCase()}">${item.tier}</span>` : ""}
-          ${item.band ? `<span class="badge badge-${item.band.toLowerCase()}">${item.band}</span>` : ""}
-          <span>${timeAgo(item.fetched_at)}</span>
-          ${item.score ? `<span>score: ${item.score.toFixed(3)}</span>` : ""}
+    if (!docs.length) { el.innerHTML = '<div class="empty">No signals match this filter.</div>'; return; }
+    el.innerHTML = docs.map(item => {
+      const band = (item.t2_band || "").toUpperCase();
+      const score = item.t2_score;
+      const scoreColor = band === "PASS" ? "var(--green)" : band === "WEAK" ? "var(--yellow)" : "var(--red)";
+      const scorePct = score ? Math.min(score / 0.6 * 100, 100) : 0;
+
+      const isReddit = (item.url || "").includes("reddit.com");
+
+      let t4Html = "";
+      if (item.t4_summary || (item.t4_entities && item.t4_entities.length)) {
+        const entitiesHtml = (item.t4_entities || []).map(e =>
+          `<span class="entity-chip">${esc(e.name)}<span class="chip-type">${esc(e.type || "")}</span></span>`
+        ).join("");
+        t4Html = `<div class="t4-section">
+          <div class="t4-label">Deep Analysis</div>
+          ${item.t4_summary ? `<div class="t4-summary">${esc(item.t4_summary)}</div>` : ""}
+          ${entitiesHtml ? `<div class="entity-chips">${entitiesHtml}</div>` : ""}
+        </div>`;
+      }
+
+      const replyId = `reply-${item._id}`;
+
+      return `<div class="pipeline-card">
+        <div class="card-header">
+          <h3>${item.url ? `<a href="${esc(item.url)}" target="_blank">${esc(item.title || item.url)}</a>` : esc(item.title || "Untitled")}</h3>
+          <p class="excerpt">${esc((item.excerpt || item.raw_body || "").slice(0, 250))}</p>
+          <div class="score-row">
+            <span class="badge badge-${band.toLowerCase()}">${band || "UNSCORED"}</span>
+            ${score != null ? `<div class="score-meter"><div class="fill" style="width:${scorePct}%;background:${scoreColor}"></div></div>
+            <span class="score-val">${score.toFixed(3)}</span>` : ""}
+            <span style="color:var(--muted)">${timeAgo(item.ingested_at)}</span>
+            ${item.t4_analyzed_at ? `<span class="badge badge-t4">T4</span>` : ""}
+            ${isReddit ? `<span class="reddit-badge"><svg viewBox="0 0 24 24" fill="#ff4500"><circle cx="12" cy="12" r="12"/><path d="M18.6 12a2.1 2.1 0 00-3.5-1.6 10.3 10.3 0 00-5.3-1.6l.9-4.3 3 .6a1.5 1.5 0 101.4-1 .3.3 0 000-.1 1.5 1.5 0 00-1.6-1.4c-.6 0-1.1.3-1.3.8l-3.3-.7a.4.4 0 00-.5.3l-1 4.8a10.3 10.3 0 00-5.4 1.6 2.1 2.1 0 10-2.3 3.4v.5c0 2.9 3.3 5.2 7.4 5.2s7.4-2.3 7.4-5.2v-.5a2.1 2.1 0 001.1-1.8zM8 13.5a1.5 1.5 0 111.5 1.5A1.5 1.5 0 018 13.5zm8.3 3.6a4.8 4.8 0 01-4.3 1.2 4.8 4.8 0 01-4.3-1.2.3.3 0 01.4-.4 4.2 4.2 0 003.9 1 4.2 4.2 0 003.9-1 .3.3 0 01.4.4zm-.3-2.1a1.5 1.5 0 111.5-1.5 1.5 1.5 0 01-1.5 1.5z" fill="#fff"/></svg></span>` : ""}
+          </div>
+          <div class="feedback-row actions">
+            <button class="btn" onclick="feedback('${item._id}','useful')">👍 Useful</button>
+            <button class="btn" onclick="feedback('${item._id}','interesting')">🤔 Interesting</button>
+            <button class="btn btn-danger" onclick="feedback('${item._id}','noise')">👎 Noise</button>
+            ${isReddit ? `<button class="btn" style="margin-left:auto;color:#ff4500;border-color:#ff450050;" onclick="toggleReply('${item._id}')">💬 Reply</button>` : ""}
+          </div>
         </div>
-        <div class="feedback-row actions">
-          <button class="btn" onclick="feedback('${item._id}','useful')">👍 Useful</button>
-          <button class="btn" onclick="feedback('${item._id}','interesting')">🤔 Interesting</button>
-          <button class="btn btn-danger" onclick="feedback('${item._id}','noise')">👎 Noise</button>
-        </div>
-      </div>`).join("");
-  } catch { el.innerHTML = '<div class="empty">Failed to load items</div>'; }
+        ${t4Html}
+        ${isReddit ? `<div class="reply-panel" id="${replyId}" style="display:none;">
+          <div class="reply-starters" id="starters-${item._id}">
+            ${getStarters(item).map((s, i) => `<button class="starter-chip" onclick="useStarter('${item._id}', ${i})">${esc(s)}</button>`).join("")}
+          </div>
+          <div class="reply-compose">
+            <textarea id="text-${item._id}" placeholder="Write a helpful reply..." oninput="maybeAutocomplete('${item._id}')"></textarea>
+            <div class="reply-toolbar">
+              <div class="reply-toolbar-left">
+                <label class="autocomplete-toggle">
+                  <input type="checkbox" id="ac-${item._id}" checked onchange="toggleAutocomplete('${item._id}')">
+                  Suggest completions
+                </label>
+              </div>
+              <div style="display:flex;gap:0.5rem;align-items:center;">
+                <span class="reply-status" id="rstatus-${item._id}"></span>
+                <button class="btn btn-primary" onclick="sendRedditReply('${item._id}', '${esc(item.url)}')">Post reply</button>
+              </div>
+            </div>
+          </div>
+        </div>` : ""}
+      </div>`;
+    }).join("");
+  } catch (e) { el.innerHTML = '<div class="empty">Failed to load pipeline data</div>'; }
 }
 
 // --- Entities ---
 async function loadEntities() {
   const el = document.getElementById("entities-list");
+  const sumEl = document.getElementById("entities-summary");
   try {
-    const res = await fetch(`${api}/entities?limit=50`);
+    const res = await authFetch(`${api}/entities?limit=50`);
     const docs = await res.json();
-    if (!docs.length) { el.innerHTML = '<div class="empty">No entities extracted yet.</div>'; return; }
-    el.innerHTML = docs.map(e => `
-      <div class="card">
-        <div class="source-row">
+    if (!docs.length) { sumEl.innerHTML = ""; el.innerHTML = '<div class="empty">No entities extracted yet. Items need T4 analysis first.</div>'; return; }
+
+    // Summary counts by type
+    const typeCounts = {};
+    docs.forEach(e => { const t = e.type || "unknown"; typeCounts[t] = (typeCounts[t] || 0) + 1; });
+    sumEl.innerHTML = `<div class="card" style="padding:0.75rem 1rem;">
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:0.82rem;">
+        ${Object.entries(typeCounts).sort((a,b) => b[1]-a[1]).map(([t, c]) =>
+          `<span><span style="color:var(--accent);font-weight:600;">${c}</span> <span style="color:var(--muted);text-transform:uppercase;font-size:0.75rem;">${esc(t)}</span></span>`
+        ).join("")}
+      </div>
+    </div>`;
+
+    el.innerHTML = docs.map(e => {
+      const strength = Math.min(Math.round((e.strength || 0) * 5), 5);
+      const dots = Array.from({length: 5}, (_, i) =>
+        `<span class="strength-dot${i < strength ? ' filled' : ''}"></span>`
+      ).join("");
+
+      return `<div class="entity-card">
+        <div class="entity-header">
           <div>
-            <h3>${esc(e.name)}</h3>
-            <span class="entity-type">${esc(e.type || "unknown")}</span>
+            <span class="entity-name">${esc(e.name)}</span>
+            <span class="entity-type" style="margin-left:0.5rem;">${esc(e.type || "unknown")}</span>
           </div>
-          <span>${e.mention_count || 0} mentions</span>
+          <div class="entity-meta">
+            <span>${e.mention_count || 0} mentions</span>
+            <div class="strength-indicator" title="Strength: ${(e.strength || 0).toFixed(2)}">${dots}</div>
+          </div>
         </div>
-        <p>${esc(e.summary || "")}</p>
-      </div>`).join("");
-  } catch { el.innerHTML = '<div class="empty">Failed to load entities</div>'; }
+        <p style="color:var(--muted);font-size:0.85rem;margin-top:0.3rem;">${esc(e.summary || "")}</p>
+        ${e.first_seen_at ? `<div style="font-size:0.75rem;color:var(--muted);margin-top:0.4rem;">First seen ${timeAgo(e.first_seen_at)}</div>` : ""}
+      </div>`;
+    }).join("");
+  } catch { sumEl.innerHTML = ""; el.innerHTML = '<div class="empty">Failed to load entities</div>'; }
 }
 
 // --- Sources ---
@@ -274,7 +1530,7 @@ async function loadSources() {
   const propEl = document.getElementById("proposals-section");
   try {
     // Proposals
-    const pRes = await fetch(`${api}/proposals?status=PENDING_REVIEW`);
+    const pRes = await authFetch(`${api}/proposals?status=PENDING_REVIEW`);
     const proposals = await pRes.json();
     if (proposals.length) {
       propEl.innerHTML = "<h3 style='margin-bottom:0.75rem'>Pending Proposals</h3>" +
@@ -296,7 +1552,7 @@ async function loadSources() {
     }
 
     // Active sources
-    const sRes = await fetch(`${api}/sources`);
+    const sRes = await authFetch(`${api}/sources`);
     const sources = await sRes.json();
     if (!sources.length) { srcEl.innerHTML = '<div class="empty">No sources registered.</div>'; return; }
     srcEl.innerHTML = "<h3 style='margin:1.5rem 0 0.75rem'>Active Sources</h3>" +
@@ -326,16 +1582,171 @@ async function loadSources() {
 
 // --- Actions ---
 async function feedback(itemId, rating) {
-  await fetch(`${api}/feedback`, {
+  await authFetch(`${api}/feedback`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ item_id: itemId, rating }),
   });
-  loadItems();
+  loadPipeline();
+}
+
+// --- Reddit Reply ---
+const RESPONSE_STARTERS = [
+  "Have you looked at {topic}? It handles that exact use case — ",
+  "We ran into the same thing. What ended up working for us was ",
+  "One thing worth considering here is ",
+  "FWIW we tested a few approaches and found that ",
+  "That's a great point. In our experience, ",
+];
+
+function getStarters(item) {
+  const topic = (item.t4_entities && item.t4_entities.length)
+    ? item.t4_entities[0].name
+    : (item.title || "").split(/\s+/).slice(0, 3).join(" ");
+  return RESPONSE_STARTERS.map(s => s.replace("{topic}", topic));
+}
+
+function toggleReply(id) {
+  const el = document.getElementById(`reply-${id}`);
+  if (!el) return;
+  el.style.display = el.style.display === "none" ? "block" : "none";
+}
+
+function useStarter(id, idx) {
+  const items = document.querySelectorAll(`#starters-${id} .starter-chip`);
+  const text = items[idx]?.textContent || "";
+  const ta = document.getElementById(`text-${id}`);
+  if (ta) { ta.value = text; ta.focus(); }
+}
+
+let acDebounce = null;
+function maybeAutocomplete(id) {
+  const cb = document.getElementById(`ac-${id}`);
+  if (!cb || !cb.checked) return;
+  clearTimeout(acDebounce);
+  acDebounce = setTimeout(() => runAutocomplete(id), 800);
+}
+
+function toggleAutocomplete(id) {
+  // Just toggles the checkbox state — no action needed
+}
+
+async function runAutocomplete(id) {
+  const ta = document.getElementById(`text-${id}`);
+  if (!ta || ta.value.length < 20) return;
+  const status = document.getElementById(`rstatus-${id}`);
+  status.textContent = "suggesting...";
+  status.style.color = "var(--muted)";
+  try {
+    const res = await authFetch(`${api}/reddit/autocomplete`, {
+      method: "POST",
+      body: JSON.stringify({ text: ta.value }),
+    });
+    const data = await res.json();
+    if (data.suggestion) {
+      const before = ta.value;
+      ta.value = before + data.suggestion;
+      ta.focus();
+      ta.setSelectionRange(before.length, ta.value.length);
+    }
+    status.textContent = "";
+  } catch { status.textContent = ""; }
+}
+
+async function sendRedditReply(id, url) {
+  const ta = document.getElementById(`text-${id}`);
+  const status = document.getElementById(`rstatus-${id}`);
+  const text = (ta?.value || "").trim();
+  if (!text) { status.textContent = "Write something first"; status.style.color = "var(--red)"; return; }
+
+  status.textContent = "Posting...";
+  status.style.color = "var(--muted)";
+  try {
+    const res = await authFetch(`${api}/reddit/reply`, {
+      method: "POST",
+      body: JSON.stringify({ url, text }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      status.textContent = "Posted!";
+      status.style.color = "var(--green)";
+      ta.value = "";
+      setTimeout(() => { status.textContent = ""; }, 3000);
+    } else {
+      status.textContent = data.error || "Failed";
+      status.style.color = "var(--red)";
+    }
+  } catch (e) {
+    status.textContent = "Network error";
+    status.style.color = "var(--red)";
+  }
+}
+
+// --- Reddit Credentials ---
+async function loadRedditCreds() {
+  const statusEl = document.getElementById("reddit-creds-status");
+  const delBtn = document.getElementById("reddit-delete-btn");
+  try {
+    const res = await authFetch(`${api}/keys`);
+    const keys = await res.json();
+    const reddit = keys.find(k => k.provider === "reddit");
+    if (reddit && reddit.configured) {
+      statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0;font-size:0.85rem;"><span style="color:var(--green);">● Connected</span><span style="color:var(--muted);">as ${esc(reddit.masked)}</span></div>`;
+      delBtn.style.display = "inline-block";
+    } else {
+      statusEl.innerHTML = `<div style="font-size:0.85rem;color:var(--muted);padding:0.3rem 0;">Not connected</div>`;
+      delBtn.style.display = "none";
+    }
+  } catch { /* ignore */ }
+}
+
+async function saveRedditCreds() {
+  const clientId = document.getElementById("reddit-client-id").value.trim();
+  const clientSecret = document.getElementById("reddit-client-secret").value.trim();
+  const refreshToken = document.getElementById("reddit-refresh-token").value.trim();
+  const username = document.getElementById("reddit-username").value.trim();
+  const status = document.getElementById("reddit-status");
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    status.textContent = "Client ID, secret, and refresh token are all required";
+    status.style.color = "var(--red)";
+    return;
+  }
+
+  status.textContent = "Encrypting...";
+  status.style.color = "var(--muted)";
+  try {
+    const res = await authFetch(`${api}/reddit/credentials`, {
+      method: "POST",
+      body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, username }),
+    });
+    if (res.ok) {
+      status.textContent = "Saved & encrypted";
+      status.style.color = "var(--green)";
+      document.getElementById("reddit-client-id").value = "";
+      document.getElementById("reddit-client-secret").value = "";
+      document.getElementById("reddit-refresh-token").value = "";
+      document.getElementById("reddit-username").value = "";
+      loadRedditCreds();
+    } else {
+      const data = await res.json();
+      status.textContent = data.error || "Failed";
+      status.style.color = "var(--red)";
+    }
+  } catch {
+    status.textContent = "Network error";
+    status.style.color = "var(--red)";
+  }
+}
+
+async function deleteRedditCreds() {
+  if (!confirm("Remove Reddit credentials?")) return;
+  await authFetch(`${api}/keys/reddit`, { method: "DELETE" });
+  loadRedditCreds();
 }
 
 async function toggleSource(id, active) {
-  await fetch(`${api}/sources/${id}`, {
+  await authFetch(`${api}/sources/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ active }),
@@ -344,7 +1755,7 @@ async function toggleSource(id, active) {
 }
 
 async function reviewProposal(id, action) {
-  await fetch(`${api}/proposals/${id}/review`, {
+  await authFetch(`${api}/proposals/${id}/review`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action }),
@@ -360,7 +1771,7 @@ async function synthesise() {
 
   result.innerHTML = '<div class="card"><p>Synthesising...</p></div>';
   try {
-    const res = await fetch(`${api}/synthesise`, {
+    const res = await authFetch(`${api}/synthesise`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
@@ -390,10 +1801,535 @@ function timeAgo(ts) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+// --- Tag Selector / Seed ---
+
+const TAGS = [
+  // Industries
+  { label: "Developer Tools", cat: "industry" },
+  { label: "DevOps / Platform Engineering", cat: "industry" },
+  { label: "AI / ML", cat: "industry" },
+  { label: "LLM / Foundation Models", cat: "industry" },
+  { label: "AI Agents", cat: "industry" },
+  { label: "Cybersecurity", cat: "industry" },
+  { label: "Fintech", cat: "industry" },
+  { label: "Healthtech", cat: "industry" },
+  { label: "Edtech", cat: "industry" },
+  { label: "Climate / Cleantech", cat: "industry" },
+  { label: "SaaS", cat: "industry" },
+  { label: "Open Source", cat: "industry" },
+  { label: "Cloud Infrastructure", cat: "industry" },
+  { label: "Data Engineering", cat: "industry" },
+  { label: "Blockchain / Web3", cat: "industry" },
+  { label: "Robotics / Hardware", cat: "industry" },
+  { label: "E-commerce", cat: "industry" },
+  { label: "Gaming", cat: "industry" },
+  { label: "Media / Content", cat: "industry" },
+  { label: "Enterprise Software", cat: "industry" },
+  { label: "Productivity", cat: "industry" },
+  { label: "Design / Creative Tools", cat: "industry" },
+  { label: "Mobile / Consumer", cat: "industry" },
+  { label: "IoT / Edge Computing", cat: "industry" },
+  { label: "API / Integration", cat: "industry" },
+  { label: "Observability / Monitoring", cat: "industry" },
+  { label: "Databases / Storage", cat: "industry" },
+  { label: "No-code / Low-code", cat: "industry" },
+  { label: "Biotech", cat: "industry" },
+  { label: "Legal Tech", cat: "industry" },
+  { label: "HR Tech", cat: "industry" },
+  { label: "Supply Chain / Logistics", cat: "industry" },
+  { label: "Real Estate Tech", cat: "industry" },
+  { label: "Govtech", cat: "industry" },
+
+  // Signal types
+  { label: "Competitor Moves", cat: "signal" },
+  { label: "Funding Rounds", cat: "signal" },
+  { label: "Talent Shifts", cat: "signal" },
+  { label: "Community Sentiment", cat: "signal" },
+  { label: "Regulatory / Policy", cat: "signal" },
+  { label: "Technical Standards", cat: "signal" },
+  { label: "Ecosystem Partnerships", cat: "signal" },
+  { label: "Adoption Patterns", cat: "signal" },
+  { label: "Open Source Releases", cat: "signal" },
+  { label: "Conference / Event Buzz", cat: "signal" },
+  { label: "Job Market Trends", cat: "signal" },
+  { label: "Pricing / Monetisation", cat: "signal" },
+  { label: "User Pain Points", cat: "signal" },
+  { label: "Academic Research", cat: "signal" },
+];
+
+let selectedTags = [];
+let highlightedIdx = -1;
+
+function renderTagPills() {
+  const el = document.getElementById("tag-pills");
+  el.innerHTML = selectedTags.map((t, i) => `
+    <span class="tag-pill">${esc(t)}<button onclick="removeTag(${i})">&times;</button></span>
+  `).join("");
+}
+
+function removeTag(idx) {
+  selectedTags.splice(idx, 1);
+  renderTagPills();
+}
+
+function addTag(label) {
+  if (!selectedTags.includes(label)) {
+    selectedTags.push(label);
+    renderTagPills();
+  }
+  document.getElementById("tag-input").value = "";
+  closeSuggestions();
+}
+
+function closeSuggestions() {
+  document.getElementById("tag-suggestions").classList.remove("open");
+  highlightedIdx = -1;
+}
+
+function showSuggestions(query) {
+  const el = document.getElementById("tag-suggestions");
+  const q = query.toLowerCase();
+  const matches = TAGS.filter(t =>
+    !selectedTags.includes(t.label) &&
+    t.label.toLowerCase().includes(q)
+  ).slice(0, 12);
+
+  if (!matches.length) {
+    closeSuggestions();
+    return;
+  }
+
+  highlightedIdx = -1;
+  el.innerHTML = matches.map((t, i) =>
+    `<div class="tag-suggestion" data-idx="${i}" onmousedown="addTag('${t.label.replace(/'/g, "\\'")}')">${esc(t.label)}<span class="tag-cat">${esc(t.cat)}</span></div>`
+  ).join("");
+  el.classList.add("open");
+}
+
+document.getElementById("tag-input").addEventListener("input", (e) => {
+  showSuggestions(e.target.value);
+});
+document.getElementById("tag-input").addEventListener("focus", (e) => {
+  showSuggestions(e.target.value);
+});
+document.getElementById("tag-input").addEventListener("blur", () => {
+  setTimeout(closeSuggestions, 150);
+});
+document.getElementById("tag-input").addEventListener("keydown", (e) => {
+  const el = document.getElementById("tag-suggestions");
+  const items = el.querySelectorAll(".tag-suggestion");
+
+  if (e.key === "ArrowDown" && items.length) {
+    e.preventDefault();
+    highlightedIdx = Math.min(highlightedIdx + 1, items.length - 1);
+    items.forEach((it, i) => it.classList.toggle("highlighted", i === highlightedIdx));
+  } else if (e.key === "ArrowUp" && items.length) {
+    e.preventDefault();
+    highlightedIdx = Math.max(highlightedIdx - 1, 0);
+    items.forEach((it, i) => it.classList.toggle("highlighted", i === highlightedIdx));
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    if (highlightedIdx >= 0 && items[highlightedIdx]) {
+      items[highlightedIdx].dispatchEvent(new Event("mousedown"));
+    } else if (e.target.value.trim()) {
+      // Allow custom tags
+      addTag(e.target.value.trim());
+    }
+  } else if (e.key === "Escape") {
+    closeSuggestions();
+  }
+});
+
+async function saveSeed() {
+  const btn = document.getElementById("seed-submit");
+  const status = document.getElementById("seed-status");
+  const problem = document.getElementById("seed-problem").value.trim();
+  const target_user = document.getElementById("seed-user").value.trim();
+
+  if (!problem) { status.textContent = "Problem space is required"; status.style.color = "var(--red)"; return; }
+  if (!target_user) { status.textContent = "Target user is required"; status.style.color = "var(--red)"; return; }
+
+  const examples = [];
+  for (let i = 0; i < 3; i++) {
+    const title = document.getElementById(`ex-title-${i}`).value.trim();
+    const url = document.getElementById(`ex-url-${i}`).value.trim();
+    const text = document.getElementById(`ex-text-${i}`).value.trim();
+    if (title || url || text) examples.push({ title, url, text });
+  }
+
+  btn.disabled = true;
+  status.textContent = "Saving...";
+  status.style.color = "var(--muted)";
+
+  try {
+    const res = await authFetch(`${api}/seed`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ problem, target_user, tags: selectedTags, examples }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      status.textContent = "Seed saved — the system will begin processing";
+      status.style.color = "var(--green)";
+      loadSeedBanner();
+    } else {
+      status.textContent = data.error || "Failed to save";
+      status.style.color = "var(--red)";
+    }
+  } catch (e) {
+    status.textContent = "Connection error: " + e.message;
+    status.style.color = "var(--red)";
+  }
+  btn.disabled = false;
+}
+
+async function loadSetup() {
+  loadSeedBanner();
+  try {
+    const res = await authFetch(`${api}/seed`);
+    if (res.ok) {
+      const data = await res.json();
+      // Populate fields with existing seed (fall back to description for old-format seeds)
+      document.getElementById("seed-problem").value = data.problem || data.description || "";
+      document.getElementById("seed-user").value = data.target_user || "";
+      selectedTags = data.tags || [];
+      renderTagPills();
+      if (data.examples) {
+        data.examples.forEach((ex, i) => {
+          if (i < 3) {
+            document.getElementById(`ex-title-${i}`).value = ex.title || "";
+            document.getElementById(`ex-url-${i}`).value = ex.url || "";
+            document.getElementById(`ex-text-${i}`).value = ex.text || "";
+          }
+        });
+      }
+    }
+  } catch { /* not seeded yet */ }
+}
+
+async function loadSeedBanner() {
+  const wrap = document.getElementById("seeded-banner-wrap");
+  try {
+    const res = await authFetch(`${api}/seed`);
+    if (res.ok) {
+      const data = await res.json();
+      const preview = data.problem || data.description || "";
+      wrap.innerHTML = `<div class="seeded-banner">
+        <span>Seeded (v${data.version}) — ${esc(preview.slice(0, 80))}${preview.length > 80 ? "..." : ""}</span>
+        <div class="banner-actions">
+          <button onclick="toggleVersionHistory()">History</button>
+          <button onclick="enableSeedEdit()">Edit</button>
+        </div>
+      </div>`;
+      document.getElementById("seed-submit").textContent = "Update seed";
+    } else {
+      wrap.innerHTML = "";
+    }
+  } catch { wrap.innerHTML = ""; }
+}
+
+function enableSeedEdit() {
+  document.getElementById("seed-problem").focus();
+  document.getElementById("seed-status").textContent = "Edit your seed data below, then click Update seed.";
+  document.getElementById("seed-status").style.color = "var(--muted)";
+}
+
+async function toggleVersionHistory() {
+  const wrap = document.getElementById("version-history-wrap");
+  if (wrap.innerHTML) {
+    const list = wrap.querySelector(".version-list");
+    if (list) {
+      if (list.classList.contains("open")) {
+        list.classList.remove("open");
+        setTimeout(() => { wrap.innerHTML = ""; }, 300);
+        return;
+      }
+    }
+    wrap.innerHTML = "";
+    return;
+  }
+  try {
+    const res = await authFetch(`${api}/seed/versions`);
+    if (!res.ok) return;
+    const versions = await res.json();
+    if (!versions.length) return;
+    const latest = versions[0].version;
+    const rows = versions.map(v => {
+      const date = v.created_at ? new Date(v.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+      const isCurrent = v.version === latest;
+      const revertedTag = v.reverted_from ? `<span class="v-reverted">reverted from v${v.reverted_from}</span>` : "";
+      return `<div class="version-item${isCurrent ? " current" : ""}">
+        <div class="v-info">
+          <div class="v-label">v${v.version}${isCurrent ? " (current)" : ""}${revertedTag}</div>
+          <div class="v-problem">${esc((v.problem || v.description || "").slice(0, 100))}</div>
+          <div class="v-date">${date}</div>
+        </div>
+        ${!isCurrent ? `<button onclick="revertSeed(${v.version})">Revert</button>` : ""}
+      </div>`;
+    }).join("");
+    wrap.innerHTML = `<div class="version-history">
+      <button class="version-toggle" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span>${versions.length} version${versions.length > 1 ? "s" : ""}</span>
+        <span>▾</span>
+      </button>
+      <div class="version-list open">${rows}</div>
+    </div>`;
+  } catch (e) {
+    wrap.innerHTML = `<div style="color:var(--red);font-size:0.8rem;margin-bottom:1rem">Failed to load versions</div>`;
+  }
+}
+
+async function revertSeed(version) {
+  if (!confirm(`Revert to seed v${version}? This creates a new version with that configuration.`)) return;
+  try {
+    const res = await authFetch(`${api}/seed/revert`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ version }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById("version-history-wrap").innerHTML = "";
+      loadSetup();
+    } else {
+      alert(data.error || "Failed to revert");
+    }
+  } catch (e) {
+    alert("Connection error: " + e.message);
+  }
+}
+
+async function checkSeedOnLoad() {
+  try {
+    const res = await authFetch(`${api}/seed`);
+    if (!res.ok) {
+      // Not seeded — switch to setup view automatically
+      document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+      const setupBtn = document.querySelector('nav button[data-view="setup"]');
+      setupBtn.classList.add("active");
+      document.getElementById("setup").classList.add("active");
+      loadSetup();
+    }
+  } catch { /* api offline, stay on briefings */ }
+}
+
+// --- API Keys Management ---
+async function loadKeys() {
+  const el = document.getElementById("keys-list");
+  try {
+    const res = await authFetch(`${api}/keys`);
+    const keys = await res.json();
+    const llmKeys = keys.filter(k => k.provider !== "reddit");
+    if (!llmKeys.length) {
+      el.innerHTML = '<div class="empty">No API keys configured. Add your OpenAI or Anthropic key to enable LLM-powered analysis.</div>';
+    } else {
+      el.innerHTML = llmKeys.map(k => `
+        <div class="key-row">
+          <span class="key-provider">${esc(k.provider)}</span>
+          <span class="key-masked">${esc(k.masked)}</span>
+          <span class="${k.configured ? 'key-status-ok' : 'key-status-none'}">${k.configured ? '● Active' : '○ Not set'}</span>
+          <div class="key-actions">
+            <button class="btn-danger" onclick="deleteApiKey('${esc(k.provider)}')">Remove</button>
+          </div>
+        </div>
+      `).join("");
+    }
+  } catch {
+    el.innerHTML = '<div class="empty">Failed to load keys</div>';
+  }
+  loadRedditCreds();
+}
+
+async function saveApiKey() {
+  const provider = document.getElementById("key-provider-select").value;
+  const key = document.getElementById("key-value-input").value.trim();
+  const status = document.getElementById("key-status");
+
+  if (!key) { status.textContent = "Key is required"; status.style.color = "var(--red)"; return; }
+
+  status.textContent = "Encrypting...";
+  status.style.color = "var(--muted)";
+
+  try {
+    const res = await authFetch(`${api}/keys`, {
+      method: "POST",
+      body: JSON.stringify({ provider, key }),
+    });
+    if (res.ok) {
+      status.textContent = "Key encrypted and saved";
+      status.style.color = "var(--green)";
+      document.getElementById("key-value-input").value = "";
+      loadKeys();
+    } else {
+      const data = await res.json();
+      status.textContent = data.error || "Failed to save";
+      status.style.color = "var(--red)";
+    }
+  } catch (e) {
+    status.textContent = "Connection error";
+    status.style.color = "var(--red)";
+  }
+}
+
+async function deleteApiKey(provider) {
+  if (!confirm(`Remove ${provider} API key?`)) return;
+  await authFetch(`${api}/keys/${provider}`, { method: "DELETE" });
+  loadKeys();
+}
+
+// --- Integrations ---
+async function loadIntegrations() {
+  const el = document.getElementById("integrations-list");
+  try {
+    const res = await authFetch(`${api}/integrations`);
+    const list = await res.json();
+    if (!list.length) { el.innerHTML = '<div class="empty">No integrations available.</div>'; return; }
+    el.innerHTML = list.map(i => {
+      const statusBadge = i.configured
+        ? (i.enabled ? '<span style="color:#22c55e;font-size:0.8rem;">● Active</span>' : '<span style="color:#f59e0b;font-size:0.8rem;">● Paused</span>')
+        : '<span style="color:var(--muted);font-size:0.8rem;">○ Not configured</span>';
+      const eventsHtml = i.events.map(e => `<span style="background:var(--bg);padding:2px 8px;border-radius:10px;font-size:0.75rem;border:1px solid var(--border);">${esc(e)}</span>`).join(' ');
+      const configBtn = i.configured
+        ? `<button class="btn" onclick='configureIntegration(${JSON.stringify(i.type)})' style="font-size:0.8rem;padding:4px 12px;background:var(--border);color:var(--text);">Edit</button>`
+        : `<button class="btn btn-primary" onclick='configureIntegration(${JSON.stringify(i.type)})' style="font-size:0.8rem;padding:4px 12px;">Connect</button>`;
+      const toggleBtn = i.configured
+        ? `<button class="btn" onclick='toggleIntegration(${JSON.stringify(i.type)}, ${!i.enabled})' style="font-size:0.8rem;padding:4px 12px;background:${i.enabled ? "#ef4444" : "#22c55e"};color:#fff;">${i.enabled ? "Disable" : "Enable"}</button>`
+        : '';
+      const testBtn = i.configured && i.enabled
+        ? `<button class="btn" onclick='testIntegration(${JSON.stringify(i.type)})' style="font-size:0.8rem;padding:4px 12px;background:var(--border);color:var(--text);">Test</button>`
+        : '';
+      const deleteBtn = i.configured
+        ? `<button class="btn" onclick='deleteIntegration(${JSON.stringify(i.type)})' style="font-size:0.8rem;padding:4px 8px;background:transparent;color:#ef4444;">✕</button>`
+        : '';
+
+      return `<div class="card" style="display:flex;flex-direction:column;gap:0.75rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h4 style="margin:0;">${esc(i.name)}</h4>
+          ${statusBadge}
+        </div>
+        <p style="color:var(--muted);margin:0;font-size:0.85rem;">${esc(i.description)}</p>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">${eventsHtml}</div>
+        <div style="display:flex;gap:0.5rem;align-items:center;margin-top:auto;">
+          ${configBtn} ${toggleBtn} ${testBtn} ${deleteBtn}
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) { el.innerHTML = '<div class="empty">Failed to load integrations.</div>'; }
+}
+
+function configureIntegration(type) {
+  // Create a modal to configure the integration
+  const existing = document.getElementById("integration-modal");
+  if (existing) existing.remove();
+
+  // Fetch the integration info to get fields
+  authFetch(`${api}/integrations`).then(r => r.json()).then(list => {
+    const info = list.find(i => i.type === type);
+    if (!info) return;
+
+    const fieldsHtml = info.fields.map(f => {
+      if (f.type === "select") {
+        const opts = (f.options || []).map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+        return `<label style="display:flex;flex-direction:column;gap:4px;font-size:0.85rem;">${esc(f.label)}
+          <select data-field="${esc(f.key)}" style="padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);">${opts}</select>
+        </label>`;
+      }
+      if (f.type === "textarea") {
+        return `<label style="display:flex;flex-direction:column;gap:4px;font-size:0.85rem;">${esc(f.label)}
+          <textarea data-field="${esc(f.key)}" placeholder="${esc(f.placeholder || '')}" rows="3" style="padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:monospace;font-size:0.8rem;resize:vertical;"></textarea>
+        </label>`;
+      }
+      const inputType = f.type === "password" ? "password" : f.type === "email" ? "email" : f.type === "url" ? "url" : "text";
+      return `<label style="display:flex;flex-direction:column;gap:4px;font-size:0.85rem;">${esc(f.label)}
+        <input type="${inputType}" data-field="${esc(f.key)}" placeholder="${esc(f.placeholder || '')}" style="padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:monospace;font-size:0.85rem;">
+      </label>`;
+    }).join('');
+
+    const eventsHtml = info.events.map(e =>
+      `<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;">
+        <input type="checkbox" value="${esc(e)}" checked> ${esc(e)}
+      </label>`
+    ).join('');
+
+    const modal = document.createElement("div");
+    modal.id = "integration-modal";
+    modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:1000;";
+    modal.innerHTML = `
+      <div style="background:var(--surface);padding:2rem;border-radius:10px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;border:1px solid var(--border);">
+        <h3 style="margin-top:0;">Configure ${esc(info.name)}</h3>
+        <div style="display:flex;flex-direction:column;gap:0.75rem;" id="integration-fields">
+          ${fieldsHtml}
+          <div style="border-top:1px solid var(--border);padding-top:0.75rem;margin-top:0.5rem;">
+            <p style="font-size:0.85rem;color:var(--muted);margin:0 0 0.5rem;">Events to subscribe to:</p>
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;">${eventsHtml}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+          <button class="btn btn-primary" onclick="saveIntegration('${esc(type)}')">Save</button>
+          <button class="btn" onclick="document.getElementById('integration-modal').remove()" style="background:var(--border);color:var(--text);">Cancel</button>
+          <span id="integration-save-status" style="font-size:0.85rem;align-self:center;"></span>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
+  });
+}
+
+async function saveIntegration(type) {
+  const container = document.getElementById("integration-fields");
+  const body = {};
+  container.querySelectorAll("[data-field]").forEach(el => {
+    body[el.dataset.field] = el.value;
+  });
+
+  // Collect selected events
+  const events = [];
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    if (cb.checked) events.push(cb.value);
+  });
+  body.events = events;
+
+  const status = document.getElementById("integration-save-status");
+  try {
+    const res = await authFetch(`${api}/integrations/${type}`, { method: "POST", body: JSON.stringify(body) });
+    if (res.ok) {
+      status.textContent = "Saved!";
+      status.style.color = "#22c55e";
+      setTimeout(() => {
+        document.getElementById("integration-modal")?.remove();
+        loadIntegrations();
+      }, 800);
+    } else {
+      const err = await res.json();
+      status.textContent = err.error || "Failed";
+      status.style.color = "#ef4444";
+    }
+  } catch {
+    status.textContent = "Network error";
+    status.style.color = "#ef4444";
+  }
+}
+
+async function toggleIntegration(type, enabled) {
+  await authFetch(`${api}/integrations/${type}`, { method: "PATCH", body: JSON.stringify({ enabled }) });
+  loadIntegrations();
+}
+
+async function testIntegration(type) {
+  const res = await authFetch(`${api}/integrations/${type}/test`, { method: "POST" });
+  const data = await res.json();
+  alert(data.message || data.error || "Test sent");
+}
+
+async function deleteIntegration(type) {
+  if (!confirm(`Remove ${type} integration?`)) return;
+  await authFetch(`${api}/integrations/${type}`, { method: "DELETE" });
+  loadIntegrations();
+}
+
 // --- Init ---
-loadStats();
-loadBriefings();
-setInterval(loadStats, 30000);
+initAuth();
 </script>
 </body>
 </html>

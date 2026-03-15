@@ -1,0 +1,12 @@
+pytest>=8.0
+pytest-asyncio>=0.23
+aiohttp
+httpx
+numpy
+motor
+pymongo
+redis
+cryptography
+feedparser
+beautifulsoup4
+bson

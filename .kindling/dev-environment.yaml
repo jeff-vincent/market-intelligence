@@ -58,6 +58,17 @@ spec:
     image: mc-llm-gateway:dev
     replicas: 1
     port: 8082
+    env:
+      - name: OPENAI_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: kindling-secret-openai-api-key
+            key: OPENAI_API_KEY
+      - name: ANTHROPIC_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: kindling-secret-anthropic-api-key
+            key: ANTHROPIC_API_KEY
     healthCheck:
       path: /healthz
   service:
@@ -206,4 +217,28 @@ spec:
       path: /
   service:
     port: 3000
+    type: ClusterIP
+
+---
+# MCP Server
+apiVersion: apps.example.com/v1alpha1
+kind: DevStagingEnvironment
+metadata:
+  name: mc-mcp-server-dev
+spec:
+  deployment:
+    image: mc-mcp-server:dev
+    replicas: 1
+    port: 8090
+    env:
+      - name: PORT
+        value: "8090"
+      - name: API_SERVER_URL
+        value: "http://jeff-vincent-api-server:8084"
+      - name: SYNTHESIS_URL
+        value: "http://jeff-vincent-synthesis-agent:8083"
+    healthCheck:
+      path: /health
+  service:
+    port: 8090
     type: ClusterIP

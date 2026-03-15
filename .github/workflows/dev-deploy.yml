@@ -91,6 +91,33 @@ jobs:
           image: "${{ env.REGISTRY }}/web-ui:${{ env.TAG }}"
 
       # -- Deploy in dependency order --
+      # Crawler first (owns the shared MongoDB + Redis)
+      - name: Deploy crawler
+        uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
+        with:
+          name: "${{ github.actor }}-crawler"
+          image: "${{ env.REGISTRY }}/crawler:${{ env.TAG }}"
+          port: "8086"
+          ingress-host: "${{ github.actor }}-crawler.localhost"
+          health-check-path: "/healthz"
+          health-check-type: "none"
+          labels: |
+            app.kubernetes.io/part-of: market-intelligence
+            app.kubernetes.io/component: crawler
+            apps.example.com/github-username: ${{ github.actor }}
+          env: |
+            - name: PORT
+              value: "8086"
+            - name: LLM_GATEWAY_URL
+              value: "http://${{ github.actor }}-llm-gateway:8082"
+          dependencies: |
+            - type: mongodb
+            - type: redis
+          replicas: "1"
+          service-type: "ClusterIP"
+          ingress-class: "traefik"
+          wait: "true"
+
       - name: Deploy llm-gateway
         uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
         with:
@@ -135,11 +162,15 @@ jobs:
             app.kubernetes.io/component: synthesis-agent
             apps.example.com/github-username: ${{ github.actor }}
           env: |
+            - name: PORT
+              value: "8083"
             - name: LLM_GATEWAY_URL
               value: "http://${{ github.actor }}-llm-gateway:8082"
+            - name: MONGO_URL
+              value: "mongodb://devuser:devpass@${{ github.actor }}-crawler-mongodb:27017/mc?authSource=admin"
+            - name: REDIS_URL
+              value: "redis://${{ github.actor }}-crawler-redis:6379/0"
           dependencies: |
-            - type: mongodb
-            - type: redis
           replicas: "1"
           service-type: "ClusterIP"
           ingress-class: "traefik"
@@ -159,11 +190,15 @@ jobs:
             app.kubernetes.io/component: discovery-agent
             apps.example.com/github-username: ${{ github.actor }}
           env: |
+            - name: PORT
+              value: "8087"
             - name: LLM_GATEWAY_URL
               value: "http://${{ github.actor }}-llm-gateway:8082"
+            - name: MONGO_URL
+              value: "mongodb://devuser:devpass@${{ github.actor }}-crawler-mongodb:27017/mc?authSource=admin"
+            - name: REDIS_URL
+              value: "redis://${{ github.actor }}-crawler-redis:6379/0"
           dependencies: |
-            - type: mongodb
-            - type: redis
           replicas: "1"
           service-type: "ClusterIP"
           ingress-class: "traefik"
@@ -183,33 +218,15 @@ jobs:
             app.kubernetes.io/component: entity-extractor
             apps.example.com/github-username: ${{ github.actor }}
           env: |
+            - name: PORT
+              value: "8088"
             - name: LLM_GATEWAY_URL
               value: "http://${{ github.actor }}-llm-gateway:8082"
+            - name: MONGO_URL
+              value: "mongodb://devuser:devpass@${{ github.actor }}-crawler-mongodb:27017/mc?authSource=admin"
+            - name: REDIS_URL
+              value: "redis://${{ github.actor }}-crawler-redis:6379/0"
           dependencies: |
-            - type: mongodb
-            - type: redis
-          replicas: "1"
-          service-type: "ClusterIP"
-          ingress-class: "traefik"
-          wait: "true"
-
-      - name: Deploy crawler
-        uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
-        with:
-          name: "${{ github.actor }}-crawler"
-          image: "${{ env.REGISTRY }}/crawler:${{ env.TAG }}"
-          port: "8086"
-          ingress-host: "${{ github.actor }}-crawler.localhost"
-          health-check-path: "/healthz"
-          health-check-type: "none"
-          labels: |
-            app.kubernetes.io/part-of: market-intelligence
-            app.kubernetes.io/component: crawler
-            apps.example.com/github-username: ${{ github.actor }}
-          env: |
-          dependencies: |
-            - type: mongodb
-            - type: redis
           replicas: "1"
           service-type: "ClusterIP"
           ingress-class: "traefik"
@@ -220,18 +237,24 @@ jobs:
         with:
           name: "${{ github.actor }}-relevance-filter"
           image: "${{ env.REGISTRY }}/relevance-filter:${{ env.TAG }}"
-          port: "8089"
+          port: "8081"
           ingress-host: "${{ github.actor }}-relevance-filter.localhost"
           health-check-path: "/healthz"
-          health-check-type: "none"
+          health-check-type: "http"
           labels: |
             app.kubernetes.io/part-of: market-intelligence
             app.kubernetes.io/component: relevance-filter
             apps.example.com/github-username: ${{ github.actor }}
           env: |
+            - name: PORT
+              value: "8081"
+            - name: LLM_GATEWAY_URL
+              value: "http://${{ github.actor }}-llm-gateway:8082"
+            - name: MONGO_URL
+              value: "mongodb://devuser:devpass@${{ github.actor }}-crawler-mongodb:27017/mc?authSource=admin"
+            - name: REDIS_URL
+              value: "redis://${{ github.actor }}-crawler-redis:6379/0"
           dependencies: |
-            - type: mongodb
-            - type: redis
           replicas: "1"
           service-type: "ClusterIP"
           ingress-class: "traefik"
@@ -245,15 +268,19 @@ jobs:
           port: "8085"
           ingress-host: "${{ github.actor }}-briefing-agent.localhost"
           health-check-path: "/healthz"
-          health-check-type: "none"
+          health-check-type: "http"
           labels: |
             app.kubernetes.io/part-of: market-intelligence
             app.kubernetes.io/component: briefing-agent
             apps.example.com/github-username: ${{ github.actor }}
           env: |
+            - name: PORT
+              value: "8085"
+            - name: MONGO_URL
+              value: "mongodb://devuser:devpass@${{ github.actor }}-crawler-mongodb:27017/mc?authSource=admin"
+            - name: REDIS_URL
+              value: "redis://${{ github.actor }}-crawler-redis:6379/0"
           dependencies: |
-            - type: mongodb
-            - type: redis
           replicas: "1"
           service-type: "ClusterIP"
           ingress-class: "traefik"
@@ -273,13 +300,17 @@ jobs:
             app.kubernetes.io/component: api-server
             apps.example.com/github-username: ${{ github.actor }}
           env: |
+            - name: PORT
+              value: "8084"
             - name: LLM_GATEWAY_URL
               value: "http://${{ github.actor }}-llm-gateway:8082"
             - name: SYNTHESIS_URL
               value: "http://${{ github.actor }}-synthesis-agent:8083"
+            - name: MONGO_URL
+              value: "mongodb://devuser:devpass@${{ github.actor }}-crawler-mongodb:27017/mc?authSource=admin"
+            - name: REDIS_URL
+              value: "redis://${{ github.actor }}-crawler-redis:6379/0"
           dependencies: |
-            - type: mongodb
-            - type: redis
           replicas: "1"
           service-type: "ClusterIP"
           ingress-class: "traefik"
@@ -290,7 +321,7 @@ jobs:
         with:
           name: "${{ github.actor }}-web-ui"
           image: "${{ env.REGISTRY }}/web-ui:${{ env.TAG }}"
-          port: "80"
+          port: "3000"
           ingress-host: "${{ github.actor }}-web-ui.localhost"
           health-check-path: "/"
           health-check-type: "http"

@@ -24,8 +24,8 @@ MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017/mc")
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 LLM_GATEWAY_URL = os.environ.get("LLM_GATEWAY_URL", "http://localhost:8082")
 
-T2_PASS_THRESHOLD = float(os.environ.get("T2_PASS_THRESHOLD", "0.72"))
-T2_WEAK_THRESHOLD = float(os.environ.get("T2_WEAK_THRESHOLD", "0.45"))
+T2_PASS_THRESHOLD = float(os.environ.get("T2_PASS_THRESHOLD", "0.35"))
+T2_WEAK_THRESHOLD = float(os.environ.get("T2_WEAK_THRESHOLD", "0.20"))
 
 db = None
 rd = None
@@ -37,8 +37,7 @@ running = True
 async def init_clients():
     global db, rd, http_client
     mongo = AsyncIOMotorClient(MONGO_URL)
-    db_name = MONGO_URL.rsplit("/", 1)[-1].split("?")[0] or "mc"
-    db = mongo[db_name]
+    db = mongo.get_default_database(default="mc")
     rd = aioredis.from_url(REDIS_URL, decode_responses=True)
     http_client = httpx.AsyncClient(timeout=30.0)
     log.info("Clients initialized")
@@ -167,6 +166,40 @@ async def listen_raw_items():
             log.error("Score error: %s", e)
 
 
+async def listen_seed_updates():
+    """Subscribe to seed_updated channel and reload problem vector."""
+    pubsub = rd.pubsub()
+    await pubsub.subscribe("seed_updated")
+    log.info("Listening for seed_updated")
+
+    async for msg in pubsub.listen():
+        if not running:
+            break
+        if msg["type"] != "message":
+            continue
+        try:
+            data = json.loads(msg["data"])
+            log.info("Seed updated (v%s), reloading problem vector", data.get("version"))
+            await load_problem_vector()
+        except Exception as e:
+            log.error("Seed update error: %s", e)
+
+
+async def backfill_unscored():
+    """Score any items that haven't been scored yet (e.g. after threshold change)."""
+    cursor = db.raw_items.find({"t2_band": None}, {"_id": 1})
+    ids = [str(doc["_id"]) async for doc in cursor]
+    if not ids:
+        return
+    log.info("Backfilling %d unscored items", len(ids))
+    for item_id in ids:
+        try:
+            await score_item(item_id)
+        except Exception as e:
+            log.error("Backfill error for %s: %s", item_id, e)
+    log.info("Backfill complete")
+
+
 async def healthz(request):
     return web.Response(text="ok")
 
@@ -198,7 +231,14 @@ async def main():
         await asyncio.sleep(5)
 
     await load_problem_vector()
-    await listen_raw_items()
+
+    # Re-score any items that haven't been scored yet (e.g. after a reset)
+    await backfill_unscored()
+
+    await asyncio.gather(
+        listen_raw_items(),
+        listen_seed_updates(),
+    )
 
 
 if __name__ == "__main__":

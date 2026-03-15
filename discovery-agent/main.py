@@ -34,8 +34,7 @@ running = True
 async def init_clients():
     global db, rd, http
     mongo = AsyncIOMotorClient(MONGO_URL)
-    db_name = MONGO_URL.rsplit("/", 1)[-1].split("?")[0] or "mc"
-    db = mongo[db_name]
+    db = mongo.get_default_database(default="mc")
     rd = aioredis.from_url(REDIS_URL, decode_responses=True)
     http = httpx.AsyncClient(timeout=120.0)
 

@@ -6,6 +6,10 @@ Central proxy for all LLM and embedding calls. Handles:
 - Provider fallback (OpenAI ↔ Anthropic)
 - Cost tracking per tier/agent/day
 - Budget enforcement
+
+Reads API keys from:
+1. Encrypted key vault (via api-server internal endpoint) — preferred
+2. Environment variables (OPENAI_API_KEY, ANTHROPIC_API_KEY) — fallback
 """
 import asyncio
 import json
@@ -15,14 +19,23 @@ import time
 from collections import defaultdict
 from datetime import date, datetime, timezone
 
+import httpx
 from aiohttp import web
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("llm-gateway")
 
+# Fallback env vars (used when no vault keys are available)
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 MONTHLY_BUDGET = float(os.environ.get("MONTHLY_LLM_BUDGET_USD", "100"))
+
+# API server internal endpoint for decrypting stored keys
+API_SERVER_URL = os.environ.get("API_SERVER_URL", "http://mc-api-server-dev:8084")
+
+# Cache vault keys in memory (TTL-based)
+_vault_cache = {}  # {provider: {"key": str, "expires": float}}
+VAULT_CACHE_TTL = 300  # 5 minutes
 
 # Model routing by tier
 TIER_MODELS = {
@@ -49,21 +62,68 @@ RATE_LIMIT_RPM = {"openai": 500, "anthropic": 300}
 
 openai_client = None
 anthropic_client = None
+_http_client = None
+
+
+async def get_vault_key(provider: str) -> str:
+    """Fetch a decrypted API key from the vault, with in-memory caching."""
+    now = time.time()
+    cached = _vault_cache.get(provider)
+    if cached and cached["expires"] > now:
+        return cached["key"]
+
+    # Try fetching from api-server internal endpoint
+    # For now, use "anonymous" as user_id (single-tenant); in multi-tenant, pass real user_id
+    try:
+        resp = await _http_client.get(
+            f"{API_SERVER_URL}/internal/keys/anonymous/{provider}",
+            timeout=5.0,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            key = data.get("key", "")
+            if key:
+                _vault_cache[provider] = {"key": key, "expires": now + VAULT_CACHE_TTL}
+                return key
+    except Exception as e:
+        log.debug("Vault key fetch failed for %s: %s", provider, e)
+
+    return ""
 
 
 def init_providers():
+    """Initialise providers from env vars. Vault keys are fetched lazily."""
     global openai_client, anthropic_client
     if OPENAI_API_KEY:
         import openai
         openai_client = openai.AsyncOpenAI(api_key=OPENAI_API_KEY)
-        log.info("OpenAI provider initialized")
+        log.info("OpenAI provider initialized (env)")
     if ANTHROPIC_API_KEY:
         import anthropic
         anthropic_client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-        log.info("Anthropic provider initialized")
+        log.info("Anthropic provider initialized (env)")
 
     if not openai_client and not anthropic_client:
-        log.warning("No LLM providers configured — gateway will return errors")
+        log.info("No env API keys — will check vault at request time")
+
+
+async def ensure_provider(provider: str):
+    """Lazily initialise a provider from vault if not already set."""
+    global openai_client, anthropic_client
+
+    if provider == "openai" and not openai_client:
+        key = await get_vault_key("openai")
+        if key:
+            import openai
+            openai_client = openai.AsyncOpenAI(api_key=key)
+            log.info("OpenAI provider initialized (vault)")
+
+    if provider == "anthropic" and not anthropic_client:
+        key = await get_vault_key("anthropic")
+        if key:
+            import anthropic
+            anthropic_client = anthropic.AsyncAnthropic(api_key=key)
+            log.info("Anthropic provider initialized (vault)")
 
 
 def check_rate_limit(provider: str) -> bool:
@@ -105,6 +165,8 @@ async def handle_embed(request):
     """POST /v1/embed — generate an embedding."""
     body = await request.json()
     text = body.get("input", "")
+
+    await ensure_provider("openai")
 
     if not openai_client:
         return web.json_response({"error": "OpenAI not configured"}, status=503)
@@ -184,6 +246,12 @@ async def handle_chat(request):
     provider = routing["provider"]
     model = routing["model"]
 
+    # Ensure provider is initialised (from vault if needed)
+    await ensure_provider(provider)
+    # Also try to init the fallback provider
+    fallback = "openai" if provider == "anthropic" else "anthropic"
+    await ensure_provider(fallback)
+
     # Try primary provider, fall back to the other
     providers_to_try = []
     if provider == "anthropic" and anthropic_client:
@@ -245,6 +313,8 @@ async def healthz(request):
 
 
 async def main():
+    global _http_client
+    _http_client = httpx.AsyncClient()
     init_providers()
 
     app = web.Application()

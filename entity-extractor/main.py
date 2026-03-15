@@ -34,8 +34,7 @@ running = True
 async def init_clients():
     global db, rd, http
     mongo = AsyncIOMotorClient(MONGO_URL)
-    db_name = MONGO_URL.rsplit("/", 1)[-1].split("?")[0] or "mc"
-    db = mongo[db_name]
+    db = mongo.get_default_database(default="mc")
     rd = aioredis.from_url(REDIS_URL, decode_responses=True)
     http = httpx.AsyncClient(timeout=60.0)
 
@@ -83,12 +82,23 @@ async def t4_analyze(item: dict) -> dict | None:
 
     result = await llm_chat("t4", [
         {"role": "system", "content": (
-            "You are an entity extraction system for market intelligence. "
-            "Extract entities and relationships from the given text.\n\n"
+            "You are an entity extraction system for market intelligence about "
+            "developer tools, infrastructure, and platform engineering.\n\n"
+            "Extract ONLY named, specific entities that would be worth tracking over time:\n"
+            "- TOOLS/PROJECTS: specific software, frameworks, or open-source projects (e.g. Kubernetes, Terraform, ArgoCD)\n"
+            "- COMPANIES/ORGS: companies, foundations, or organizations (e.g. HashiCorp, CNCF, Vercel)\n"
+            "- CONCEPTS: specific technical patterns or architectural approaches worth tracking (e.g. GitOps, service mesh, eBPF)\n\n"
+            "DO NOT extract:\n"
+            "- Reddit/forum usernames or authors\n"
+            "- Generic programming terms (e.g. logs, containers, YAML, main, dev)\n"
+            "- Job titles or career terms\n"
+            "- Single letters, abbreviations without meaning, or vague terms\n\n"
+            "Use canonical names: 'Kubernetes' not 'k8s' or 'K8s'. Prefer full product names.\n\n"
             "Return valid JSON with this structure:\n"
-            '{"entities": [{"name": "...", "type": "tool|company|person|concept|community", "summary": "..."}], '
-            '"relationships": [{"from": "...", "to": "...", "type": "competes_with|built_by|uses|part_of|mentioned_with"}], '
-            '"item_summary": "one paragraph summary of the content"}'
+            '{"entities": [{"name": "...", "type": "tool|company|concept", "summary": "one sentence about why this entity matters"}], '
+            '"relationships": [{"from": "...", "to": "...", "type": "competes_with|built_by|uses|part_of|integrates_with"}], '
+            '"item_summary": "one paragraph summary of the content"}\n\n'
+            "Quality over quantity. Only include entities you are confident are specific, named things worth tracking."
         )},
         {"role": "user", "content": f"Title: {item.get('title', '')}\n\n{text}"},
     ])
@@ -192,13 +202,17 @@ async def process_item(item_id: str, band: str):
     if not analysis:
         return
 
-    # Store entities
+    # Store entities (skip low-quality extractions)
     entity_ids = {}
+    skip_types = {"person", "community"}
     for ent in analysis.get("entities", []):
-        if not ent.get("name"):
+        name = (ent.get("name") or "").strip()
+        if not name or len(name) < 2:
+            continue
+        if ent.get("type", "").lower() in skip_types:
             continue
         eid = await upsert_entity(ent)
-        entity_ids[ent["name"]] = eid
+        entity_ids[name] = eid
 
     # Store relationships
     for rel in analysis.get("relationships", []):
@@ -255,9 +269,28 @@ async def run_server():
     await site.start()
 
 
+async def backfill_unanalyzed():
+    """Re-analyze PASS items that haven't been T4-analyzed yet."""
+    cursor = db.raw_items.find(
+        {"t2_band": "PASS", "t4_analyzed_at": None},
+        {"_id": 1},
+    )
+    ids = [str(doc["_id"]) async for doc in cursor]
+    if not ids:
+        return
+    log.info("Backfilling %d un-analyzed PASS items", len(ids))
+    for item_id in ids:
+        try:
+            await process_item(item_id, "PASS")
+        except Exception as e:
+            log.error("Backfill error for %s: %s", item_id, e)
+    log.info("Backfill complete")
+
+
 async def main():
     await init_clients()
     await run_server()
+    await backfill_unanalyzed()
     await listen_scored_items()
 
 
