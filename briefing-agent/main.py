@@ -52,9 +52,14 @@ async def format_briefing(briefing_id: str):
     item_ids = [ObjectId(i) for i in briefing.get("item_ids", []) if ObjectId.is_valid(i)]
     items = await db.raw_items.find({"_id": {"$in": item_ids}}).to_list(100) if item_ids else []
 
+    # Batch-fetch all sources referenced by items
+    source_ids = list({item.get("source_id") for item in items if item.get("source_id")})
+    sources_list = await db.sources.find({"_id": {"$in": source_ids}}).to_list(100) if source_ids else []
+    sources_map = {s["_id"]: s for s in sources_list}
+
     key_items = []
     for item in items:
-        source = await db.sources.find_one({"_id": item.get("source_id")}) if item.get("source_id") else None
+        source = sources_map.get(item.get("source_id"))
         key_items.append({
             "id": str(item["_id"]),
             "title": item.get("title", ""),

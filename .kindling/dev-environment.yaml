@@ -1,4 +1,4 @@
-# Crawler — owns the shared dependencies
+# Crawler - owns the shared dependencies
 apiVersion: apps.example.com/v1alpha1
 kind: DevStagingEnvironment
 metadata:
@@ -13,8 +13,14 @@ spec:
         value: "8086"
       - name: LLM_GATEWAY_URL
         value: "http://mc-llm-gateway-dev:8082"
-    healthCheck:
-      path: /healthz
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  health-check-path: /healthz
   service:
     port: 8086
     type: ClusterIP
@@ -37,14 +43,16 @@ spec:
     env:
       - name: PORT
         value: "8081"
-      - name: MONGO_URL
-        value: "mongodb://devuser:devpass@mc-crawler-dev-mongodb:27017/mc?authSource=admin"
-      - name: REDIS_URL
-        value: "redis://mc-crawler-dev-redis:6379/0"
       - name: LLM_GATEWAY_URL
         value: "http://mc-llm-gateway-dev:8082"
-    healthCheck:
-      path: /healthz
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  health-check-path: /healthz
   service:
     port: 8081
     type: ClusterIP
@@ -71,8 +79,14 @@ spec:
           secretKeyRef:
             name: kindling-secret-anthropic-api-key
             key: ANTHROPIC_API_KEY
-    healthCheck:
-      path: /healthz
+  resources:
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  health-check-path: /healthz
   service:
     port: 8082
     type: ClusterIP
@@ -91,14 +105,16 @@ spec:
     env:
       - name: PORT
         value: "8088"
-      - name: MONGO_URL
-        value: "mongodb://devuser:devpass@mc-crawler-dev-mongodb:27017/mc?authSource=admin"
-      - name: REDIS_URL
-        value: "redis://mc-crawler-dev-redis:6379/0"
       - name: LLM_GATEWAY_URL
         value: "http://mc-llm-gateway-dev:8082"
-    healthCheck:
-      path: /healthz
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  health-check-path: /healthz
   service:
     port: 8088
     type: ClusterIP
@@ -117,14 +133,16 @@ spec:
     env:
       - name: PORT
         value: "8087"
-      - name: MONGO_URL
-        value: "mongodb://devuser:devpass@mc-crawler-dev-mongodb:27017/mc?authSource=admin"
-      - name: REDIS_URL
-        value: "redis://mc-crawler-dev-redis:6379/0"
       - name: LLM_GATEWAY_URL
         value: "http://mc-llm-gateway-dev:8082"
-    healthCheck:
-      path: /healthz
+  resources:
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  health-check-path: /healthz
   service:
     port: 8087
     type: ClusterIP
@@ -143,14 +161,16 @@ spec:
     env:
       - name: PORT
         value: "8083"
-      - name: MONGO_URL
-        value: "mongodb://devuser:devpass@mc-crawler-dev-mongodb:27017/mc?authSource=admin"
-      - name: REDIS_URL
-        value: "redis://mc-crawler-dev-redis:6379/0"
       - name: LLM_GATEWAY_URL
         value: "http://mc-llm-gateway-dev:8082"
-    healthCheck:
-      path: /healthz
+  resources:
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  health-check-path: /healthz
   service:
     port: 8083
     type: ClusterIP
@@ -169,14 +189,16 @@ spec:
     env:
       - name: PORT
         value: "8085"
-      - name: MONGO_URL
-        value: "mongodb://devuser:devpass@mc-crawler-dev-mongodb:27017/mc?authSource=admin"
-      - name: REDIS_URL
-        value: "redis://mc-crawler-dev-redis:6379/0"
       - name: API_SERVER_URL
         value: "http://mc-api-server-dev:8084"
-    healthCheck:
-      path: /healthz
+  resources:
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  health-check-path: /healthz
   service:
     port: 8085
     type: ClusterIP
@@ -193,14 +215,16 @@ spec:
     replicas: 1
     port: 8084
     env:
-      - name: MONGO_URL
-        value: "mongodb://devuser:devpass@mc-crawler-dev-mongodb:27017/mc?authSource=admin"
-      - name: REDIS_URL
-        value: "redis://mc-crawler-dev-redis:6379/0"
       - name: LLM_GATEWAY_URL
         value: "http://mc-llm-gateway-dev:8082"
-    healthCheck:
-      path: /healthz
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  health-check-path: /healthz
   service:
     port: 8084
     type: ClusterIP
@@ -223,8 +247,14 @@ spec:
         value: "http://mc-api-server-dev:8084"
       - name: SYNTHESIS_URL
         value: "http://mc-synthesis-agent-dev:8083"
-    healthCheck:
-      path: /health
+  resources:
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  health-check-path: /health
   service:
     port: 8090
     type: ClusterIP
@@ -243,54 +273,14 @@ spec:
     env:
       - name: API_URL
         value: "http://mc-api-server-dev:8084"
-    healthCheck:
-      path: /
+  resources:
+    limits:
+      cpu: "250m"
+      memory: "128Mi"
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+  health-check-path: /
   service:
     port: 3000
-    type: ClusterIP
-
----
-# Web UI
-apiVersion: apps.example.com/v1alpha1
-kind: DevStagingEnvironment
-metadata:
-  name: mc-web-ui-dev
-spec:
-  deployment:
-    image: mc-web-ui:dev
-    replicas: 1
-    port: 3000
-    env:
-      - name: PORT
-        value: "3000"
-      - name: API_URL
-        value: "http://mc-api-server-dev:8084"
-    healthCheck:
-      path: /
-  service:
-    port: 3000
-    type: ClusterIP
-
----
-# MCP Server
-apiVersion: apps.example.com/v1alpha1
-kind: DevStagingEnvironment
-metadata:
-  name: mc-mcp-server-dev
-spec:
-  deployment:
-    image: mc-mcp-server:dev
-    replicas: 1
-    port: 8090
-    env:
-      - name: PORT
-        value: "8090"
-      - name: API_SERVER_URL
-        value: "http://jeff-vincent-api-server:8084"
-      - name: SYNTHESIS_URL
-        value: "http://jeff-vincent-synthesis-agent:8083"
-    healthCheck:
-      path: /health
-  service:
-    port: 8090
     type: ClusterIP
