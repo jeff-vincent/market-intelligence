@@ -90,6 +90,13 @@ jobs:
           context: ${{ github.workspace }}/web-ui
           image: "${{ env.REGISTRY }}/web-ui:${{ env.TAG }}"
 
+      - name: Build mcp-server image
+        uses: kindling-sh/kindling/.github/actions/kindling-build@main
+        with:
+          name: mcp-server
+          context: ${{ github.workspace }}/mcp-server
+          image: "${{ env.REGISTRY }}/mcp-server:${{ env.TAG }}"
+
       # -- Deploy in dependency order --
       # Crawler first (owns the shared MongoDB + Redis)
       - name: Deploy crawler
@@ -280,6 +287,8 @@ jobs:
               value: "mongodb://devuser:devpass@${{ github.actor }}-crawler-mongodb:27017/mc?authSource=admin"
             - name: REDIS_URL
               value: "redis://${{ github.actor }}-crawler-redis:6379/0"
+            - name: API_SERVER_URL
+              value: "http://${{ github.actor }}-api-server:8084"
           dependencies: |
           replicas: "1"
           service-type: "ClusterIP"
@@ -310,6 +319,32 @@ jobs:
               value: "mongodb://devuser:devpass@${{ github.actor }}-crawler-mongodb:27017/mc?authSource=admin"
             - name: REDIS_URL
               value: "redis://${{ github.actor }}-crawler-redis:6379/0"
+          dependencies: |
+          replicas: "1"
+          service-type: "ClusterIP"
+          ingress-class: "traefik"
+          wait: "true"
+
+      - name: Deploy mcp-server
+        uses: kindling-sh/kindling/.github/actions/kindling-deploy@main
+        with:
+          name: "${{ github.actor }}-mcp-server"
+          image: "${{ env.REGISTRY }}/mcp-server:${{ env.TAG }}"
+          port: "8090"
+          ingress-host: "${{ github.actor }}-mcp-server.localhost"
+          health-check-path: "/health"
+          health-check-type: "http"
+          labels: |
+            app.kubernetes.io/part-of: market-intelligence
+            app.kubernetes.io/component: mcp-server
+            apps.example.com/github-username: ${{ github.actor }}
+          env: |
+            - name: PORT
+              value: "8090"
+            - name: API_SERVER_URL
+              value: "http://${{ github.actor }}-api-server:8084"
+            - name: SYNTHESIS_URL
+              value: "http://${{ github.actor }}-synthesis-agent:8083"
           dependencies: |
           replicas: "1"
           service-type: "ClusterIP"

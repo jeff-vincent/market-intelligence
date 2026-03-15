@@ -11,6 +11,8 @@ spec:
     env:
       - name: PORT
         value: "8086"
+      - name: LLM_GATEWAY_URL
+        value: "http://mc-llm-gateway-dev:8082"
     healthCheck:
       path: /healthz
   service:
@@ -139,6 +141,8 @@ spec:
     replicas: 1
     port: 8083
     env:
+      - name: PORT
+        value: "8083"
       - name: MONGO_URL
         value: "mongodb://devuser:devpass@mc-crawler-dev-mongodb:27017/mc?authSource=admin"
       - name: REDIS_URL
@@ -163,10 +167,14 @@ spec:
     replicas: 1
     port: 8085
     env:
+      - name: PORT
+        value: "8085"
       - name: MONGO_URL
         value: "mongodb://devuser:devpass@mc-crawler-dev-mongodb:27017/mc?authSource=admin"
       - name: REDIS_URL
         value: "redis://mc-crawler-dev-redis:6379/0"
+      - name: API_SERVER_URL
+        value: "http://mc-api-server-dev:8084"
     healthCheck:
       path: /healthz
   service:
@@ -195,6 +203,50 @@ spec:
       path: /healthz
   service:
     port: 8084
+    type: ClusterIP
+
+---
+# MCP Server
+apiVersion: apps.example.com/v1alpha1
+kind: DevStagingEnvironment
+metadata:
+  name: mc-mcp-server-dev
+spec:
+  deployment:
+    image: mc-mcp-server:dev
+    replicas: 1
+    port: 8090
+    env:
+      - name: PORT
+        value: "8090"
+      - name: API_SERVER_URL
+        value: "http://mc-api-server-dev:8084"
+      - name: SYNTHESIS_URL
+        value: "http://mc-synthesis-agent-dev:8083"
+    healthCheck:
+      path: /health
+  service:
+    port: 8090
+    type: ClusterIP
+
+---
+# Web UI
+apiVersion: apps.example.com/v1alpha1
+kind: DevStagingEnvironment
+metadata:
+  name: mc-web-ui-dev
+spec:
+  deployment:
+    image: mc-web-ui:dev
+    replicas: 1
+    port: 3000
+    env:
+      - name: API_URL
+        value: "http://mc-api-server-dev:8084"
+    healthCheck:
+      path: /
+  service:
+    port: 3000
     type: ClusterIP
 
 ---

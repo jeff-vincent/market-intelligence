@@ -24,7 +24,7 @@ log = logging.getLogger("briefing-agent")
 
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017/mc")
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
-API_SERVER_URL = os.environ.get("API_SERVER_URL", "http://jeff-vincent-api-server:8084")
+API_SERVER_URL = os.environ.get("API_SERVER_URL", "http://localhost:8084")
 
 db = None
 rd = None

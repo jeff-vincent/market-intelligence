@@ -22,8 +22,8 @@ from mcp.server.fastmcp import FastMCP
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("mcp-server")
 
-API_SERVER_URL = os.environ.get("API_SERVER_URL", "http://mc-api-server-dev:8084")
-SYNTHESIS_URL = os.environ.get("SYNTHESIS_URL", "http://mc-synthesis-agent-dev:8083")
+API_SERVER_URL = os.environ.get("API_SERVER_URL", "http://localhost:8084")
+SYNTHESIS_URL = os.environ.get("SYNTHESIS_URL", "http://localhost:8083")
 PORT = int(os.environ.get("PORT", "8090"))
 
 mcp = FastMCP(
